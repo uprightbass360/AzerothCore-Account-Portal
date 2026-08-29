@@ -1,0 +1,37 @@
+[project]
+name = "backend"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "aiosmtplib>=5.1",
+    "aiosqlite>=0.22",
+    "alembic>=1.19",
+    "asyncmy>=0.2.10",
+    "fastapi[standard]>=0.141",
+    "httpx>=0.28,<1.0",
+    "pydantic-settings>=2.15",
+    "pyotp>=2.10",
+    "segno>=1.6",
+    "sqlalchemy>=2.0,<2.1",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9",
+    "pytest-asyncio>=1.4",
+    "pytest-cov>=7",
+    "respx>=0.23",
+    "ruff>=0.16.5",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+addopts = "--cov=app --cov-report=term-missing --cov-fail-under=100"
+
+[tool.coverage.run]
+branch = true
+source = ["app"]
+
+[tool.ruff]
+line-length = 100
