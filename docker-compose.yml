@@ -1,0 +1,51 @@
+services:
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      PORTAL_DATABASE_URL: "sqlite+aiosqlite:////data/portal.db"
+      PORTAL_ACORE_AUTH_URL: "${PORTAL_ACORE_AUTH_URL}"
+      PORTAL_SOAP_URL: "${PORTAL_SOAP_URL:-http://ac-worldserver:7878/}"
+      PORTAL_SOAP_USER: "${PORTAL_SOAP_USER}"
+      PORTAL_SOAP_PASS: "${PORTAL_SOAP_PASS}"
+      PORTAL_SMTP_HOST: "${PORTAL_SMTP_HOST}"
+      PORTAL_SMTP_PORT: "${PORTAL_SMTP_PORT:-587}"
+      PORTAL_SMTP_USER: "${PORTAL_SMTP_USER:-}"
+      PORTAL_SMTP_PASS: "${PORTAL_SMTP_PASS:-}"
+      PORTAL_SMTP_FROM: "${PORTAL_SMTP_FROM}"
+      PORTAL_SMTP_STARTTLS: "${PORTAL_SMTP_STARTTLS:-true}"
+      PORTAL_INTERNAL_API_KEY: "${PORTAL_INTERNAL_API_KEY}"
+      PORTAL_PUBLIC_BASE_URL: "${PORTAL_PUBLIC_BASE_URL}"
+      PORTAL_INVITE_TTL_DAYS: "${PORTAL_INVITE_TTL_DAYS:-7}"
+      PORTAL_SESSION_TTL_DAYS: "${PORTAL_SESSION_TTL_DAYS:-7}"
+      PORTAL_TOTP_ISSUER: "${PORTAL_TOTP_ISSUER:-AzerothCore}"
+      PORTAL_ADMIN_USERNAMES: "${PORTAL_ADMIN_USERNAMES:-}"
+    volumes:
+      - appdata:/data
+    networks:
+      - portal
+      - realmmaster
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    environment:
+      ORIGIN: "${PORTAL_PUBLIC_BASE_URL}"
+      BACKEND_URL: "http://backend:8000"
+      INTERNAL_API_KEY: "${PORTAL_INTERNAL_API_KEY}"
+      PORT: "3000"
+    ports:
+      - "${PORTAL_HTTP_PORT:-8080}:3000"
+    depends_on:
+      - backend
+    networks:
+      - portal
+
+volumes:
+  appdata:
+
+networks:
+  portal: {}
+  realmmaster:
+    external: true
+    name: "${REALMMASTER_NETWORK}"
