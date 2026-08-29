@@ -8,6 +8,7 @@ node_modules
 /.svelte-kit
 /build
 /coverage
+test-results
 
 # OS
 .DS_Store
