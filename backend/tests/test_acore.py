@@ -7,15 +7,25 @@ from app.services.acore import AcoreReader
 
 async def insert_account(engine, id, username, email="u@e.c", totp=None):
     async with engine.begin() as conn:
-        await conn.execute(acore.account.insert().values(
-            id=id, username=username, email=email,
-            salt=b"\x01" * 32, verifier=b"\x02" * 32, totp_secret=totp))
+        await conn.execute(
+            acore.account.insert().values(
+                id=id,
+                username=username,
+                email=email,
+                salt=b"\x01" * 32,
+                verifier=b"\x02" * 32,
+                totp_secret=totp,
+            )
+        )
 
 
 async def ban(engine, id, active=1):
     async with engine.begin() as conn:
-        await conn.execute(acore.account_banned.insert().values(
-            id=id, bandate=1, unbandate=0, bannedby="portal", banreason="r", active=active))
+        await conn.execute(
+            acore.account_banned.insert().values(
+                id=id, bandate=1, unbandate=0, bannedby="portal", banreason="r", active=active
+            )
+        )
 
 
 @pytest.fixture

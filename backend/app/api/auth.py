@@ -29,16 +29,19 @@ def _client_ip(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
-async def _checked_account(body: LoginIn, request: Request, db: AsyncSession,
-                           reader: AcoreReader) -> AccountRow:
+async def _checked_account(
+    body: LoginIn, request: Request, db: AsyncSession, reader: AcoreReader
+) -> AccountRow:
     ip = _client_ip(request)
     limiter = request.app.state.login_limiter
     if not (limiter.allow(f"ip:{ip}") and limiter.allow(f"user:{body.username.upper()}")):
         raise HTTPException(status_code=429, detail="Too many attempts, try again later")
     acct = await reader.get_account(body.username)
-    ok = (acct is not None
-          and not await reader.is_banned(acct.id)
-          and verify_password(body.username, body.password, acct.salt, acct.verifier))
+    ok = (
+        acct is not None
+        and not await reader.is_banned(acct.id)
+        and verify_password(body.username, body.password, acct.salt, acct.verifier)
+    )
     if not ok:
         await record(db, "login.failed", body.username.upper(), detail={"ip": ip})
         await db.commit()
@@ -50,19 +53,28 @@ async def _issue(request: Request, db: AsyncSession, acct: AccountRow) -> dict:
     settings = request.app.state.settings
     raw, hashed = new_session_token()
     sess = PortalSession(
-        id=hashed, account_id=acct.id, username=acct.username,
+        id=hashed,
+        account_id=acct.id,
+        username=acct.username,
         expires_at=utcnow() + timedelta(days=settings.session_ttl_days),
-        ip=_client_ip(request), user_agent=request.headers.get("user-agent"))
+        ip=_client_ip(request),
+        user_agent=request.headers.get("user-agent"),
+    )
     db.add(sess)
-    await record(db, "login.success", acct.username, actor_account_id=acct.id,
-                 detail={"ip": sess.ip})
+    await record(
+        db, "login.success", acct.username, actor_account_id=acct.id, detail={"ip": sess.ip}
+    )
     await db.commit()
     return {"token": raw, "expires_at": sess.expires_at.isoformat()}
 
 
 @router.post("/login")
-async def login(body: LoginIn, request: Request, db: AsyncSession = Depends(get_db),
-                reader: AcoreReader = Depends(get_reader)) -> dict:
+async def login(
+    body: LoginIn,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    reader: AcoreReader = Depends(get_reader),
+) -> dict:
     acct = await _checked_account(body, request, db, reader)
     if acct.totp_secret:
         return {"status": "2fa_required"}
@@ -70,11 +82,16 @@ async def login(body: LoginIn, request: Request, db: AsyncSession = Depends(get_
 
 
 @router.post("/login/2fa")
-async def login_2fa(body: TwoFaIn, request: Request, db: AsyncSession = Depends(get_db),
-                    reader: AcoreReader = Depends(get_reader)) -> dict:
+async def login_2fa(
+    body: TwoFaIn,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    reader: AcoreReader = Depends(get_reader),
+) -> dict:
     acct = await _checked_account(body, request, db, reader)
     if not acct.totp_secret or not totp.verify_code(
-            totp.secret_from_db(acct.totp_secret), body.code):
+        totp.secret_from_db(acct.totp_secret), body.code
+    ):
         await record(db, "login.failed", acct.username, detail={"reason": "2fa"})
         await db.commit()
         raise HTTPException(status_code=401, detail="Invalid code")
@@ -82,8 +99,9 @@ async def login_2fa(body: TwoFaIn, request: Request, db: AsyncSession = Depends(
 
 
 @router.post("/logout")
-async def logout(sess: PortalSession = Depends(current_session),
-                 db: AsyncSession = Depends(get_db)) -> dict:
+async def logout(
+    sess: PortalSession = Depends(current_session), db: AsyncSession = Depends(get_db)
+) -> dict:
     sess.revoked_at = utcnow()
     await db.commit()
     return {"ok": True}

@@ -2,7 +2,7 @@ from app.core.config import Settings, get_settings
 
 
 def make_settings(**overrides) -> Settings:
-    defaults = dict(_env_file=None)
+    defaults = {"_env_file": None}
     defaults.update(overrides)
     return Settings(**defaults)
 

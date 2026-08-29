@@ -28,9 +28,9 @@ def get_mailer(request: Request) -> Mailer:
     return request.app.state.mailer
 
 
-async def current_session(request: Request,
-                          db: AsyncSession = Depends(get_db),
-                          authorization: str = Header(default="")) -> PortalSession:
+async def current_session(
+    request: Request, db: AsyncSession = Depends(get_db), authorization: str = Header(default="")
+) -> PortalSession:
     if not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Not authenticated")
     sess = await db.get(PortalSession, hash_token(authorization[7:]))
@@ -42,8 +42,9 @@ async def current_session(request: Request,
     return sess
 
 
-async def require_admin(sess: PortalSession = Depends(current_session),
-                        db: AsyncSession = Depends(get_db)) -> PortalSession:
+async def require_admin(
+    sess: PortalSession = Depends(current_session), db: AsyncSession = Depends(get_db)
+) -> PortalSession:
     if await db.get(Admin, sess.account_id) is None:
         raise HTTPException(status_code=403, detail="Admin access required")
     return sess

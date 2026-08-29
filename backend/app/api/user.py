@@ -38,59 +38,73 @@ async def _account(sess: PortalSession, reader: AcoreReader) -> AccountRow:
 
 
 @router.get("")
-async def get_user(sess: PortalSession = Depends(current_session),
-                   db: AsyncSession = Depends(get_db),
-                   reader: AcoreReader = Depends(get_reader)) -> dict:
+async def get_user(
+    sess: PortalSession = Depends(current_session),
+    db: AsyncSession = Depends(get_db),
+    reader: AcoreReader = Depends(get_reader),
+) -> dict:
     acct = await _account(sess, reader)
-    return {"username": acct.username, "email": acct.email,
-            "totp_enabled": bool(acct.totp_secret),
-            "is_admin": await db.get(Admin, sess.account_id) is not None}
+    return {
+        "username": acct.username,
+        "email": acct.email,
+        "totp_enabled": bool(acct.totp_secret),
+        "is_admin": await db.get(Admin, sess.account_id) is not None,
+    }
 
 
 @router.post("/password")
-async def change_password(body: PasswordIn,
-                          sess: PortalSession = Depends(current_session),
-                          db: AsyncSession = Depends(get_db),
-                          reader: AcoreReader = Depends(get_reader),
-                          soap: SoapClient = Depends(get_soap)) -> dict:
+async def change_password(
+    body: PasswordIn,
+    sess: PortalSession = Depends(current_session),
+    db: AsyncSession = Depends(get_db),
+    reader: AcoreReader = Depends(get_reader),
+    soap: SoapClient = Depends(get_soap),
+) -> dict:
     acct = await _account(sess, reader)
     if not verify_password(acct.username, body.current_password, acct.salt, acct.verifier):
         raise HTTPException(status_code=403, detail="Current password is incorrect")
     if not PASSWORD_RE.fullmatch(body.new_password):
         raise HTTPException(status_code=422, detail="Invalid password")
     await soap.set_password(acct.username, body.new_password)
-    await db.execute(update(PortalSession)
-                     .where(PortalSession.account_id == sess.account_id,
-                            PortalSession.id != sess.id,
-                            PortalSession.revoked_at.is_(None))
-                     .values(revoked_at=utcnow()))
+    await db.execute(
+        update(PortalSession)
+        .where(
+            PortalSession.account_id == sess.account_id,
+            PortalSession.id != sess.id,
+            PortalSession.revoked_at.is_(None),
+        )
+        .values(revoked_at=utcnow())
+    )
     await record(db, "password.changed", acct.username, actor_account_id=acct.id)
     await db.commit()
     return {"ok": True}
 
 
 @router.post("/2fa/setup")
-async def twofa_setup(request: Request,
-                      sess: PortalSession = Depends(current_session),
-                      db: AsyncSession = Depends(get_db),
-                      reader: AcoreReader = Depends(get_reader)) -> dict:
+async def twofa_setup(
+    request: Request,
+    sess: PortalSession = Depends(current_session),
+    db: AsyncSession = Depends(get_db),
+    reader: AcoreReader = Depends(get_reader),
+) -> dict:
     acct = await _account(sess, reader)
     if acct.totp_secret:
         raise HTTPException(status_code=409, detail="2FA already enabled")
     secret = totp.new_secret()
     sess.pending_totp_secret = secret
     await db.commit()
-    uri = totp.provisioning_uri(secret, acct.username,
-                                request.app.state.settings.totp_issuer)
+    uri = totp.provisioning_uri(secret, acct.username, request.app.state.settings.totp_issuer)
     return {"secret": secret, "otpauth_uri": uri, "qr_svg": totp.qr_svg(uri)}
 
 
 @router.post("/2fa/confirm")
-async def twofa_confirm(body: CodeIn,
-                        sess: PortalSession = Depends(current_session),
-                        db: AsyncSession = Depends(get_db),
-                        reader: AcoreReader = Depends(get_reader),
-                        soap: SoapClient = Depends(get_soap)) -> dict:
+async def twofa_confirm(
+    body: CodeIn,
+    sess: PortalSession = Depends(current_session),
+    db: AsyncSession = Depends(get_db),
+    reader: AcoreReader = Depends(get_reader),
+    soap: SoapClient = Depends(get_soap),
+) -> dict:
     acct = await _account(sess, reader)
     if not sess.pending_totp_secret:
         raise HTTPException(status_code=400, detail="No 2FA setup in progress")
@@ -104,11 +118,13 @@ async def twofa_confirm(body: CodeIn,
 
 
 @router.post("/2fa/disable")
-async def twofa_disable(body: DisableIn,
-                        sess: PortalSession = Depends(current_session),
-                        db: AsyncSession = Depends(get_db),
-                        reader: AcoreReader = Depends(get_reader),
-                        soap: SoapClient = Depends(get_soap)) -> dict:
+async def twofa_disable(
+    body: DisableIn,
+    sess: PortalSession = Depends(current_session),
+    db: AsyncSession = Depends(get_db),
+    reader: AcoreReader = Depends(get_reader),
+    soap: SoapClient = Depends(get_soap),
+) -> dict:
     acct = await _account(sess, reader)
     if not acct.totp_secret:
         raise HTTPException(status_code=400, detail="2FA is not enabled")

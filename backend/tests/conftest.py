@@ -50,19 +50,33 @@ async def app(settings):
 async def client(app):
     async with app.router.lifespan_context(app):
         transport = ASGITransport(app=app)
-        async with AsyncClient(transport=transport, base_url="http://test",
-                               headers={"X-Internal-Key": "test-key"}) as c:
+        async with AsyncClient(
+            transport=transport, base_url="http://test", headers={"X-Internal-Key": "test-key"}
+        ) as c:
             yield c
 
 
 @pytest.fixture
 def seed_account(app):
-    async def _seed(id: int, username: str, password: str = "testpass",
-                    email: str = "u@e.c", totp_raw: bytes | None = None) -> None:
+    async def _seed(
+        id: int,
+        username: str,
+        password: str = "testpass",
+        email: str = "u@e.c",
+        totp_raw: bytes | None = None,
+    ) -> None:
         async with app.state.acore_engine.begin() as conn:
-            await conn.execute(acore.account.insert().values(
-                id=id, username=username.upper(), email=email, salt=SALT,
-                verifier=calculate_verifier(username, password, SALT), totp_secret=totp_raw))
+            await conn.execute(
+                acore.account.insert().values(
+                    id=id,
+                    username=username.upper(),
+                    email=email,
+                    salt=SALT,
+                    verifier=calculate_verifier(username, password, SALT),
+                    totp_secret=totp_raw,
+                )
+            )
+
     return _seed
 
 
@@ -76,28 +90,39 @@ async def portal_db(app):
 @pytest.fixture
 def login(client):
     async def _login(username: str = "testuser", password: str = "testpass") -> str:
-        resp = await client.post("/api/v1/auth/login",
-                                 json={"username": username, "password": password})
+        resp = await client.post(
+            "/api/v1/auth/login", json={"username": username, "password": password}
+        )
         assert resp.status_code == 200, resp.text
         return resp.json()["token"]
+
     return _login
 
 
 @pytest.fixture
 def make_invite(app):
-    async def _make(email: str = "new@player.com", days: int = 7,
-                    used: bool = False, revoked: bool = False,
-                    created_by: int = 99) -> tuple[str, int]:
+    async def _make(
+        email: str = "new@player.com",
+        days: int = 7,
+        used: bool = False,
+        revoked: bool = False,
+        created_by: int = 99,
+    ) -> tuple[str, int]:
         raw, hashed = new_session_token()
         maker = make_sessionmaker(app.state.engine)
         async with maker() as db:
-            inv = Invite(email=email, token_hash=hashed, created_by=created_by,
-                         expires_at=utcnow() + timedelta(days=days),
-                         used_at=utcnow() if used else None,
-                         revoked_at=utcnow() if revoked else None)
+            inv = Invite(
+                email=email,
+                token_hash=hashed,
+                created_by=created_by,
+                expires_at=utcnow() + timedelta(days=days),
+                used_at=utcnow() if used else None,
+                revoked_at=utcnow() if revoked else None,
+            )
             db.add(inv)
             await db.commit()
             return raw, inv.id
+
     return _make
 
 
@@ -111,4 +136,5 @@ def admin_login(app, seed_account, login):
                 db.add(Admin(account_id=id, username=username.upper(), granted_by=None))
                 await db.commit()
         return await login(username, "testpass")
+
     return _admin

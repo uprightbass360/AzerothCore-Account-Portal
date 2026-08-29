@@ -21,7 +21,11 @@ async def test_record(db):
     await db.commit()
     row = (await db.execute(select(AuditLog))).scalar_one()
     assert (row.action, row.target, row.actor_account_id, row.detail) == (
-        "invite.sent", "a@b.c", 7, {"invite_id": 1})
+        "invite.sent",
+        "a@b.c",
+        7,
+        {"invite_id": 1},
+    )
 
 
 async def test_record_minimal(db):

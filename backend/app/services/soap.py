@@ -44,7 +44,8 @@ class SoapClient:
             try:
                 async with httpx.AsyncClient(auth=self._auth, timeout=self._timeout) as client:
                     resp = await client.post(
-                        self._url, content=body, headers={"Content-Type": "text/xml"})
+                        self._url, content=body, headers={"Content-Type": "text/xml"}
+                    )
                 return _extract(resp.text)
             except httpx.HTTPError as exc:
                 last_exc = exc

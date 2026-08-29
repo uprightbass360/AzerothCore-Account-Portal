@@ -8,19 +8,27 @@ URL = "http://soap.test/"
 
 
 def ok(result: str) -> httpx.Response:
-    return httpx.Response(200, text=(
-        '<?xml version="1.0"?><SOAP-ENV:Envelope '
-        'xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ns1="urn:AC">'
-        f"<SOAP-ENV:Body><ns1:executeCommandResponse><result>{result}</result>"
-        "</ns1:executeCommandResponse></SOAP-ENV:Body></SOAP-ENV:Envelope>"))
+    return httpx.Response(
+        200,
+        text=(
+            '<?xml version="1.0"?><SOAP-ENV:Envelope '
+            'xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ns1="urn:AC">'
+            f"<SOAP-ENV:Body><ns1:executeCommandResponse><result>{result}</result>"
+            "</ns1:executeCommandResponse></SOAP-ENV:Body></SOAP-ENV:Envelope>"
+        ),
+    )
 
 
 def fault(msg: str) -> httpx.Response:
-    return httpx.Response(500, text=(
-        '<?xml version="1.0"?><SOAP-ENV:Envelope '
-        'xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">'
-        "<SOAP-ENV:Body><SOAP-ENV:Fault><faultcode>SOAP-ENV:Client</faultcode>"
-        f"<faultstring>{msg}</faultstring></SOAP-ENV:Fault></SOAP-ENV:Body></SOAP-ENV:Envelope>"))
+    return httpx.Response(
+        500,
+        text=(
+            '<?xml version="1.0"?><SOAP-ENV:Envelope '
+            'xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">'
+            "<SOAP-ENV:Body><SOAP-ENV:Fault><faultcode>SOAP-ENV:Client</faultcode>"
+            f"<faultstring>{msg}</faultstring></SOAP-ENV:Fault></SOAP-ENV:Body></SOAP-ENV:Envelope>"
+        ),
+    )
 
 
 @pytest.fixture

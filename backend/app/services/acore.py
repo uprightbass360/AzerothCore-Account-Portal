@@ -3,14 +3,26 @@
 from dataclasses import dataclass
 from datetime import datetime
 
-from sqlalchemy import (Column, DateTime, Integer, LargeBinary, MetaData, SmallInteger, String,
-                        Table, func, literal, select)
+from sqlalchemy import (
+    Column,
+    DateTime,
+    Integer,
+    LargeBinary,
+    MetaData,
+    SmallInteger,
+    String,
+    Table,
+    func,
+    literal,
+    select,
+)
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 metadata = MetaData()
 
 account = Table(
-    "account", metadata,
+    "account",
+    metadata,
     Column("id", Integer, primary_key=True),
     Column("username", String(32)),
     Column("salt", LargeBinary(32)),
@@ -22,7 +34,8 @@ account = Table(
 )
 
 account_banned = Table(
-    "account_banned", metadata,
+    "account_banned",
+    metadata,
     Column("id", Integer, primary_key=True),
     Column("bandate", Integer, primary_key=True),
     Column("unbandate", Integer),
@@ -31,8 +44,16 @@ account_banned = Table(
     Column("active", SmallInteger),
 )
 
-_COLS = [account.c.id, account.c.username, account.c.email, account.c.salt,
-         account.c.verifier, account.c.totp_secret, account.c.last_login, account.c.joindate]
+_COLS = [
+    account.c.id,
+    account.c.username,
+    account.c.email,
+    account.c.salt,
+    account.c.verifier,
+    account.c.totp_secret,
+    account.c.last_login,
+    account.c.joindate,
+]
 
 
 @dataclass
@@ -48,9 +69,16 @@ class AccountRow:
 
 
 def _row(r) -> AccountRow:
-    return AccountRow(id=r.id, username=r.username, email=r.email, salt=r.salt,
-                      verifier=r.verifier, totp_secret=r.totp_secret,
-                      last_login=r.last_login, joindate=r.joindate)
+    return AccountRow(
+        id=r.id,
+        username=r.username,
+        email=r.email,
+        salt=r.salt,
+        verifier=r.verifier,
+        totp_secret=r.totp_secret,
+        last_login=r.last_login,
+        joindate=r.joindate,
+    )
 
 
 class AcoreReader:
@@ -63,8 +91,9 @@ class AcoreReader:
         return _row(r) if r else None
 
     async def get_account(self, username: str) -> AccountRow | None:
-        return await self._one(select(*_COLS).where(
-            func.upper(account.c.username) == username.upper()))
+        return await self._one(
+            select(*_COLS).where(func.upper(account.c.username) == username.upper())
+        )
 
     async def get_by_id(self, account_id: int) -> AccountRow | None:
         return await self._one(select(*_COLS).where(account.c.id == account_id))
@@ -72,8 +101,9 @@ class AcoreReader:
     async def username_exists(self, username: str) -> bool:
         return await self.get_account(username) is not None
 
-    async def list_accounts(self, search: str = "", offset: int = 0,
-                            limit: int = 25) -> tuple[list[AccountRow], int]:
+    async def list_accounts(
+        self, search: str = "", offset: int = 0, limit: int = 25
+    ) -> tuple[list[AccountRow], int]:
         base = select(*_COLS)
         count = select(func.count()).select_from(account)
         if search:
@@ -81,14 +111,17 @@ class AcoreReader:
             base, count = base.where(cond), count.where(cond)
         async with self._engine.connect() as conn:
             total = (await conn.execute(count)).scalar_one()
-            rows = (await conn.execute(base.order_by(account.c.id).offset(offset).limit(limit))).all()
+            rows = (
+                await conn.execute(base.order_by(account.c.id).offset(offset).limit(limit))
+            ).all()
         return [_row(r) for r in rows], total
 
     async def banned_ids(self, ids: list[int]) -> set[int]:
         if not ids:
             return set()
         stmt = select(account_banned.c.id).where(
-            account_banned.c.id.in_(ids), account_banned.c.active == 1)
+            account_banned.c.id.in_(ids), account_banned.c.active == 1
+        )
         async with self._engine.connect() as conn:
             return {r.id for r in (await conn.execute(stmt)).all()}
 

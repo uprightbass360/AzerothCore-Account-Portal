@@ -45,8 +45,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         await app.state.engine.dispose()
         await app.state.acore_engine.dispose()
 
-    app = FastAPI(title="AzerothCore Account Portal", lifespan=lifespan,
-                  docs_url=None, redoc_url=None, openapi_url=None)
+    app = FastAPI(
+        title="AzerothCore Account Portal",
+        lifespan=lifespan,
+        docs_url=None,
+        redoc_url=None,
+        openapi_url=None,
+    )
     app.state.settings = settings
     app.state.engine = make_engine(settings.database_url)
     app.state.sessionmaker = make_sessionmaker(app.state.engine)
@@ -79,7 +84,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.exception_handler(SoapError)
     async def soap_error_handler(request: Request, exc: SoapError) -> JSONResponse:
         logger.error("SOAP failure: %s", exc.message)
-        return JSONResponse(status_code=503,
-                            content={"detail": "Game server temporarily unavailable"})
+        return JSONResponse(
+            status_code=503, content={"detail": "Game server temporarily unavailable"}
+        )
 
     return app

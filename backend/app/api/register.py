@@ -43,9 +43,12 @@ async def invite_info(token: str, db: AsyncSession = Depends(get_db)) -> dict:
 
 
 @router.get("/{token}/check-username")
-async def check_username(token: str, username: str,
-                         db: AsyncSession = Depends(get_db),
-                         reader: AcoreReader = Depends(get_reader)) -> dict:
+async def check_username(
+    token: str,
+    username: str,
+    db: AsyncSession = Depends(get_db),
+    reader: AcoreReader = Depends(get_reader),
+) -> dict:
     await _valid_invite(token, db)
     if not USERNAME_RE.fullmatch(username):
         return {"valid": False, "available": False}
@@ -53,10 +56,13 @@ async def check_username(token: str, username: str,
 
 
 @router.post("/{token}", status_code=201)
-async def register(token: str, body: RegisterIn,
-                   db: AsyncSession = Depends(get_db),
-                   reader: AcoreReader = Depends(get_reader),
-                   soap: SoapClient = Depends(get_soap)) -> dict:
+async def register(
+    token: str,
+    body: RegisterIn,
+    db: AsyncSession = Depends(get_db),
+    reader: AcoreReader = Depends(get_reader),
+    soap: SoapClient = Depends(get_soap),
+) -> dict:
     inv = await _valid_invite(token, db)
     if not USERNAME_RE.fullmatch(body.username):
         raise HTTPException(status_code=422, detail="Invalid username")

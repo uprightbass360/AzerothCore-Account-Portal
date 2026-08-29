@@ -41,3 +41,7 @@ line-length = 100
 # the standard, documented FastAPI dependency-injection pattern used throughout these routers.
 "app/api/*.py" = ["B008"]
 "app/core/deps.py" = ["B008"]
+# BLE001 (blind `except Exception`): the health probe deliberately treats *any* failure from
+# either downstream dependency (acore_auth DB, SOAP) as that check being down, so one
+# dependency's outage is reported as "degraded" rather than crashing the whole endpoint.
+"app/api/health.py" = ["BLE001"]

@@ -10,6 +10,7 @@ from tests.test_soap import ok
 async def test_health_all_ok(client, monkeypatch):
     async def ping_ok(self):
         return True
+
     monkeypatch.setattr("app.services.mailer.Mailer.ping", ping_ok)
     with respx.mock:
         respx.post("http://soap.test/").mock(return_value=ok("AzerothCore rev"))
@@ -23,6 +24,7 @@ async def test_health_all_ok(client, monkeypatch):
 async def test_health_degraded(client, monkeypatch):
     async def ping_fail(self):
         return False
+
     monkeypatch.setattr("app.services.mailer.Mailer.ping", ping_fail)
     with respx.mock:
         respx.post("http://soap.test/").mock(side_effect=httpx.ConnectError("down"))
@@ -49,8 +51,11 @@ async def test_health_needs_no_internal_key(client):
 
 
 async def test_internal_key_required(client):
-    resp = await client.post("/api/v1/auth/login", headers={"X-Internal-Key": "wrong"},
-                             json={"username": "a", "password": "b"})
+    resp = await client.post(
+        "/api/v1/auth/login",
+        headers={"X-Internal-Key": "wrong"},
+        json={"username": "a", "password": "b"},
+    )
     assert resp.status_code == 401
 
 
@@ -66,16 +71,25 @@ async def test_docs_and_openapi_require_internal_key(client):
 
 async def test_admin_seeding(settings, seed_account, portal_db):
     from tests.conftest import _create_schemas
+
     await _create_schemas(settings)
     settings.admin_usernames = "ADMIN,GHOST"
     app = create_app(settings)
     async with app.state.acore_engine.begin() as conn:
-        from app.services import acore
         from app.core.srp6 import calculate_verifier
+        from app.services import acore
         from tests.conftest import SALT
-        await conn.execute(acore.account.insert().values(
-            id=9, username="ADMIN", email="a@b.c", salt=SALT,
-            verifier=calculate_verifier("ADMIN", "pw", SALT), totp_secret=None))
+
+        await conn.execute(
+            acore.account.insert().values(
+                id=9,
+                username="ADMIN",
+                email="a@b.c",
+                salt=SALT,
+                verifier=calculate_verifier("ADMIN", "pw", SALT),
+                totp_secret=None,
+            )
+        )
     async with app.router.lifespan_context(app):
         pass
     # seeding is idempotent

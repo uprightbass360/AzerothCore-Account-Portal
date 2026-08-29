@@ -28,7 +28,9 @@ async def test_invite_roundtrip(db):
 async def test_session_and_admin_and_audit(db):
     db.add(PortalSession(id="s" * 64, account_id=5, username="X", expires_at=utcnow()))
     db.add(Admin(account_id=5, username="X", granted_by=1))
-    db.add(AuditLog(action="login.success", target="X", actor_account_id=5, detail={"ip": "1.2.3.4"}))
+    db.add(
+        AuditLog(action="login.success", target="X", actor_account_id=5, detail={"ip": "1.2.3.4"})
+    )
     await db.commit()
     sess = (await db.execute(select(PortalSession))).scalar_one()
     assert sess.pending_totp_secret is None

@@ -1,6 +1,11 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 from sqlalchemy.orm import DeclarativeBase
 
 
@@ -17,4 +22,4 @@ def make_sessionmaker(engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
 
 
 def utcnow() -> datetime:
-    return datetime.now(timezone.utc).replace(tzinfo=None)
+    return datetime.now(UTC).replace(tzinfo=None)

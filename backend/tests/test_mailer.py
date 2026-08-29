@@ -9,9 +9,17 @@ from app.services.mailer import Mailer, MailerError
 
 @pytest.fixture
 def mailer():
-    return Mailer(Settings(_env_file=None, smtp_host="mail.test", smtp_port=587,
-                           smtp_user="u", smtp_pass="p", smtp_from="noreply@t.co",
-                           public_base_url="http://portal.test"))
+    return Mailer(
+        Settings(
+            _env_file=None,
+            smtp_host="mail.test",
+            smtp_port=587,
+            smtp_user="u",
+            smtp_pass="p",
+            smtp_from="noreply@t.co",
+            public_base_url="http://portal.test",
+        )
+    )
 
 
 async def test_send_invite(mailer):
@@ -36,10 +44,15 @@ async def test_send_invite_no_auth_when_no_user(mailer):
 
 
 async def test_send_failure_raises(mailer):
-    with patch("app.services.mailer.aiosmtplib.send", new_callable=AsyncMock,
-               side_effect=OSError("refused")):
-        with pytest.raises(MailerError):
-            await mailer.send_invite("a@b.c", "l", 7)
+    with (
+        patch(
+            "app.services.mailer.aiosmtplib.send",
+            new_callable=AsyncMock,
+            side_effect=OSError("refused"),
+        ),
+        pytest.raises(MailerError),
+    ):
+        await mailer.send_invite("a@b.c", "l", 7)
 
 
 async def test_ping(mailer):
