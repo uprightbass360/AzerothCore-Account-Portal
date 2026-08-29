@@ -16,8 +16,7 @@
 				{#if data.user}
 					<a href={resolve('/account')} class="hover:underline">{data.user.username}</a>
 					{#if data.user.is_admin}
-						<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- /admin/invites route lands in Task 17 -->
-						<a href="/admin/invites" class="hover:underline">Admin</a>
+						<a href={resolve('/admin/invites')} class="hover:underline">Admin</a>
 					{/if}
 					<form method="POST" action={resolve('/logout')}>
 						<button class="hover:underline">Log out</button>
