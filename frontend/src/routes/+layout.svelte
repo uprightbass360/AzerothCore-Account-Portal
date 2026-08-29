@@ -14,8 +14,7 @@
 			<a href={resolve('/')} class="font-semibold tracking-wide">Account Portal</a>
 			<div class="ml-auto flex items-center gap-4 text-sm">
 				{#if data.user}
-					<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- /account route lands in Task 15 -->
-					<a href="/account" class="hover:underline">{data.user.username}</a>
+					<a href={resolve('/account')} class="hover:underline">{data.user.username}</a>
 					{#if data.user.is_admin}
 						<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- /admin/invites route lands in Task 17 -->
 						<a href="/admin/invites" class="hover:underline">Admin</a>

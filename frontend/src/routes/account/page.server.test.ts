@@ -1,0 +1,124 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock('$lib/server/api', async (orig) => {
+	const mod = (await orig()) as object;
+	return { ...mod, api: vi.fn() };
+});
+vi.mock('$env/dynamic/private', () => ({ env: {} }));
+
+import { api } from '$lib/server/api';
+import { actions } from './+page.server';
+
+function formEvent(fields: Record<string, string>) {
+	const fd = new FormData();
+	for (const [k, v] of Object.entries(fields)) fd.set(k, v);
+	return {
+		request: new Request('http://t.est', { method: 'POST', body: fd }),
+		cookies: { get: vi.fn(), set: vi.fn(), delete: vi.fn() },
+		url: new URL('http://t.est/account'),
+		fetch: vi.fn(),
+		locals: { user: { username: 'BOB', email: null, totp_enabled: false, is_admin: false } }
+	} as never;
+}
+
+beforeEach(() => vi.clearAllMocks());
+
+describe('password action', () => {
+	const good = { current_password: 'oldpass99', new_password: 'newpass99', confirm: 'newpass99' };
+
+	it('changes password', async () => {
+		vi.mocked(api).mockResolvedValue({ status: 200, data: { ok: true } });
+		const res = await actions.password(formEvent(good));
+		expect(res).toEqual({ passwordChanged: true });
+		expect(api).toHaveBeenCalledWith(expect.anything(), 'POST', '/api/v1/user/password', {
+			current_password: 'oldpass99',
+			new_password: 'newpass99'
+		});
+	});
+
+	it('rejects mismatched confirm locally', async () => {
+		const res = await actions.password(formEvent({ ...good, confirm: 'other9999' }));
+		expect(res).toMatchObject({ status: 400 });
+		expect(api).not.toHaveBeenCalled();
+	});
+
+	it('surfaces wrong current password', async () => {
+		vi.mocked(api).mockResolvedValue({
+			status: 403,
+			data: { detail: 'Current password is incorrect' }
+		});
+		const res = await actions.password(formEvent(good));
+		expect(res).toMatchObject({ status: 403, data: { message: 'Current password is incorrect' } });
+	});
+
+	it('falls back to a default message when the backend omits detail', async () => {
+		vi.mocked(api).mockResolvedValue({ status: 422, data: {} });
+		const res = await actions.password(formEvent(good));
+		expect(res).toMatchObject({ status: 422, data: { message: 'Password change failed' } });
+	});
+});
+
+describe('2fa actions', () => {
+	it('disable2fa rejects an invalid code locally', async () => {
+		const res = await actions.disable2fa(formEvent({ password: 'pw', code: 'abc' }));
+		expect(res).toMatchObject({ status: 400 });
+		expect(api).not.toHaveBeenCalled();
+	});
+
+	it('setup2fa returns secret payload', async () => {
+		const payload = { secret: 'ABCDEFGHIJKLMNOP', otpauth_uri: 'otpauth://x', qr_svg: '<svg/>' };
+		vi.mocked(api).mockResolvedValue({ status: 200, data: payload });
+		const res = await actions.setup2fa(formEvent({}));
+		expect(res).toEqual({ setup: payload });
+	});
+
+	it('setup2fa surfaces 409', async () => {
+		vi.mocked(api).mockResolvedValue({ status: 409, data: { detail: '2FA already enabled' } });
+		const res = await actions.setup2fa(formEvent({}));
+		expect(res).toMatchObject({ status: 409 });
+	});
+
+	it('setup2fa falls back to a default message when the backend omits detail', async () => {
+		vi.mocked(api).mockResolvedValue({ status: 500, data: {} });
+		const res = await actions.setup2fa(formEvent({}));
+		expect(res).toMatchObject({ status: 500, data: { message: '2FA setup failed' } });
+	});
+
+	it('confirm2fa validates code then confirms', async () => {
+		let res = await actions.confirm2fa(formEvent({ code: 'abc' }));
+		expect(res).toMatchObject({ status: 400 });
+		vi.mocked(api).mockResolvedValue({ status: 200, data: { ok: true } });
+		res = await actions.confirm2fa(formEvent({ code: '123456' }));
+		expect(res).toEqual({ enabled: true });
+		vi.mocked(api).mockResolvedValue({ status: 400, data: { detail: 'Invalid code' } });
+		res = await actions.confirm2fa(formEvent({ code: '123456' }));
+		expect(res).toMatchObject({
+			status: 400,
+			data: { message: 'Invalid code', setupPending: true }
+		});
+	});
+
+	it('confirm2fa falls back to a default message when the backend omits detail', async () => {
+		vi.mocked(api).mockResolvedValue({ status: 400, data: {} });
+		const res = await actions.confirm2fa(formEvent({ code: '123456' }));
+		expect(res).toMatchObject({
+			status: 400,
+			data: { message: 'Confirmation failed', setupPending: true }
+		});
+	});
+
+	it('disable2fa flows', async () => {
+		vi.mocked(api).mockResolvedValue({ status: 200, data: { ok: true } });
+		let res = await actions.disable2fa(formEvent({ password: 'pw', code: '123456' }));
+		expect(res).toEqual({ disabled: true });
+		vi.mocked(api).mockResolvedValue({ status: 403, data: { detail: 'Password is incorrect' } });
+		res = await actions.disable2fa(formEvent({ password: 'pw', code: '123456' }));
+		expect(res).toMatchObject({ status: 403 });
+	});
+
+	it('disable2fa falls back to a default message when the backend omits detail', async () => {
+		vi.mocked(api).mockResolvedValue({ status: 400, data: {} });
+		const res = await actions.disable2fa(formEvent({ password: 'pw', code: '123456' }));
+		expect(res).toMatchObject({ status: 400, data: { message: 'Disable failed' } });
+	});
+});
