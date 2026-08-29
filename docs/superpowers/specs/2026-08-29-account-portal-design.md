@@ -246,9 +246,51 @@ GET          /admin/audit
   optional CI job — excluded from the coverage gate.
 - TDD throughout.
 
+## Dependencies (verified 2026-08-29)
+
+All libraries below were verified against PyPI/npm for current version and
+2025–2026 maintenance activity, and their intended-usage APIs checked against
+official docs. Nothing selected is deprecated or abandoned.
+
+### Backend (Python 3.12+, managed with uv)
+
+| Library | Version (pin) | Role / intended usage |
+|---|---|---|
+| fastapi[standard] | 0.141.x | App framework; `[standard]` bundles uvicorn, TestClient deps, fastapi-cli |
+| SQLAlchemy | 2.0.x | Async end-to-end: `create_async_engine`, `AsyncSession`; Core for the `acore_auth` reader (dialect-portable) |
+| alembic | 1.19.x | Migrations, async template (`alembic init -t async`, `connection.run_sync`) |
+| aiosqlite | 0.22.x | Async SQLite dialect (`sqlite+aiosqlite://`) for app DB |
+| asyncmy | 0.2.x | Async MySQL dialect (`mysql+asyncmy://`) for read-only `acore_auth`; handles MySQL 8 `caching_sha2_password`; more active than aiomysql |
+| httpx | >=0.28,<1.0 | SOAP POSTs: `AsyncClient(auth=(user, pass))`, `content=` XML bytes. **Yellow flag:** stable 0.28.1 is from Dec 2024 and 1.0 is in dev pre-releases — pin below 1.0, expect API changes at 1.0 |
+| aiosmtplib | 5.1.x | Invite mail: `EmailMessage` + `aiosmtplib.send(..., start_tls=True)` |
+| pyotp | 2.10.x | `random_base32()`, `TOTP.provisioning_uri(name=..., issuer_name=...)`, `totp.verify(code, valid_window=1)` |
+| segno | 1.6.x | QR as SVG string via `segno.make(uri).svg_inline()` — pure Python, zero deps (chosen over `qrcode`, which needs Pillow/pypng and only writes SVG to streams) |
+| pydantic-settings | 2.15.x | `BaseSettings` + `SettingsConfigDict(env_prefix="PORTAL_")`, cached instance injected via `Depends` |
+| pytest / pytest-cov / pytest-asyncio | 9.x / 7.x / 1.4.x | `asyncio_mode = "auto"`; pytest-asyncio only (not anyio's plugin — never both); `--cov --cov-fail-under=100` |
+| respx | 0.23.x | httpx mocking for SOAP/unit tests |
+| ruff | latest | Lint + format |
+
+Because httpx and aiosmtplib make the stack async anyway, all DB access is
+async (no sync-in-threadpool mixing); sync SQLAlchemy calls inside `async def`
+are forbidden.
+
+### Frontend (SvelteKit 2, scaffolded with `npx sv create` — `create-svelte` is deprecated)
+
+| Library | Version | Role / intended usage |
+|---|---|---|
+| svelte | 5.x | Runes mode (`$state`, `$derived`, `$props`) |
+| @sveltejs/kit | 2.70+ | `+page.server.ts` `load`/`actions`, `fail()`/`redirect()`, `event.fetch` to backend, `event.cookies`, auth guard in `hooks.server.ts` `handle`, `use:enhance` |
+| @sveltejs/adapter-node | 5.5.x | Docker deploy: `node build`; **must set `ORIGIN`** env (or `PROTOCOL_HEADER`/`HOST_HEADER` behind a proxy) or form actions fail CSRF origin checks; backend URL via `$env/dynamic/private` (runtime, not build-time); `.env` not auto-loaded in prod — env comes from compose |
+| zod | 4.x | Form validation in actions: `schema.safeParse` + `z.flattenError()`; v4 APIs (`z.email()` top-level, `error:` callback). **No superforms** — plain form actions + a small shared parse/fail helper; FastAPI re-validates everything, and superforms' machinery isn't earned by ~8 simple forms |
+| tailwindcss + @tailwindcss/vite | 4.x | CSS-first config: Vite plugin + `@import "tailwindcss"` in `app.css`; no `tailwind.config.js`; theme tokens via `@theme` |
+| vitest | 4.x | Node-env unit tests for validation/action helpers (100% threshold) |
+| @testing-library/svelte | 5.4.x | Component tests only where components hold real logic (still the scaffold/official-docs default; `vitest-browser-svelte` noted as the emerging alternative if needs grow) |
+| @playwright/test | 1.62.x | E2E smoke (register → login → password change), `sv` add-on scaffold; excluded from coverage gate |
+| eslint 10 (flat config) + eslint-plugin-svelte 3.x, prettier + prettier-plugin-svelte | scaffold versions | As shipped by `sv create` add-ons |
+
 ## Development & deployment
 
 - Local dev runs against a dev RealmMaster stack; the portal deploys on the
   prod box alongside the stack without modifying the stack's compose file.
-- Backend tooling: uv, ruff, pytest. Frontend: Vite/SvelteKit defaults,
-  eslint + prettier per SvelteKit scaffold.
+- Backend tooling: uv, ruff, pytest. Frontend: `npx sv create` scaffold with
+  eslint, prettier, vitest, playwright, tailwindcss add-ons.
