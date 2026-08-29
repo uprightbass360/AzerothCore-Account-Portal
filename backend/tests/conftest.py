@@ -1,12 +1,13 @@
-import pytest
 from datetime import timedelta
+
+import pytest
 from httpx import ASGITransport, AsyncClient
 
 from app.core.config import Settings
 from app.core.security import new_session_token
 from app.core.srp6 import calculate_verifier
 from app.db.base import Base, make_engine, make_sessionmaker, utcnow
-from app.db.models import Invite
+from app.db.models import Admin, Invite
 from app.main import create_app
 from app.services import acore
 
@@ -98,3 +99,16 @@ def make_invite(app):
             await db.commit()
             return raw, inv.id
     return _make
+
+
+@pytest.fixture
+def admin_login(app, seed_account, login):
+    async def _admin(id: int = 90, username: str = "boss") -> str:
+        await seed_account(id, username)
+        maker = make_sessionmaker(app.state.engine)
+        async with maker() as db:
+            if await db.get(Admin, id) is None:
+                db.add(Admin(account_id=id, username=username.upper(), granted_by=None))
+                await db.commit()
+        return await login(username, "testpass")
+    return _admin
