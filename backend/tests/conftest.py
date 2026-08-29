@@ -1,9 +1,12 @@
 import pytest
+from datetime import timedelta
 from httpx import ASGITransport, AsyncClient
 
 from app.core.config import Settings
+from app.core.security import new_session_token
 from app.core.srp6 import calculate_verifier
-from app.db.base import Base, make_engine, make_sessionmaker
+from app.db.base import Base, make_engine, make_sessionmaker, utcnow
+from app.db.models import Invite
 from app.main import create_app
 from app.services import acore
 
@@ -77,3 +80,21 @@ def login(client):
         assert resp.status_code == 200, resp.text
         return resp.json()["token"]
     return _login
+
+
+@pytest.fixture
+def make_invite(app):
+    async def _make(email: str = "new@player.com", days: int = 7,
+                    used: bool = False, revoked: bool = False,
+                    created_by: int = 99) -> tuple[str, int]:
+        raw, hashed = new_session_token()
+        maker = make_sessionmaker(app.state.engine)
+        async with maker() as db:
+            inv = Invite(email=email, token_hash=hashed, created_by=created_by,
+                         expires_at=utcnow() + timedelta(days=days),
+                         used_at=utcnow() if used else None,
+                         revoked_at=utcnow() if revoked else None)
+            db.add(inv)
+            await db.commit()
+            return raw, inv.id
+    return _make
