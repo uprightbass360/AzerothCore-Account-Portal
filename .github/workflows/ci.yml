@@ -23,8 +23,10 @@ jobs:
           cache-dependency-glob: backend/uv.lock
       - name: Install dependencies
         run: uv sync --frozen
-      - name: Tests (100% branch coverage enforced)
+      - name: Tests (100% branch coverage enforced, Python 3.14 per .python-version)
         run: uv run pytest
+      - name: Tests on Python 3.12 (docker runtime parity, no coverage)
+        run: uv run -p 3.12 --frozen pytest --no-cov -q
       - name: Lint
         run: uv run ruff check .
       - name: Format check
