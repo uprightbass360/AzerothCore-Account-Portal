@@ -49,7 +49,7 @@
 				class="w-full rounded border border-stone-300 px-3 py-2"
 			/>
 			<FieldErrors errors={form?.errors?.confirm} />
-			{#if form?.message && !form?.setupPending}
+			{#if form?.message && form?.section === 'password'}
 				<p class="mt-2 text-sm text-red-600">{form.message}</p>
 			{/if}
 			<button class="mt-4 rounded bg-stone-900 px-4 py-2 text-sm text-stone-100"
@@ -81,7 +81,7 @@
 					class="w-40 rounded border border-stone-300 px-3 py-2"
 				/>
 				<FieldErrors errors={form?.errors?.code} />
-				{#if form?.message && form?.setupPending}
+				{#if form?.message && form?.setupPending && form?.section === 'twofa'}
 					<p class="mt-2 text-sm text-red-600">{form.message}</p>
 				{/if}
 				<button class="mt-3 rounded bg-stone-900 px-4 py-2 text-sm text-stone-100"
@@ -113,14 +113,18 @@
 					>Disable 2FA</button
 				>
 			</form>
-			{#if form?.message}<p class="mt-2 text-sm text-red-600">{form.message}</p>{/if}
+			{#if form?.message && form?.section === 'twofa'}<p class="mt-2 text-sm text-red-600">
+					{form.message}
+				</p>{/if}
 		{:else}
 			{#if form?.disabled}<p class="mb-2 text-sm text-stone-600">2FA has been disabled.</p>{/if}
 			<p class="mb-3 text-sm text-stone-600">Protect your account with an authenticator app.</p>
 			<form method="POST" action="?/setup2fa" use:enhance>
 				<button class="rounded bg-stone-900 px-4 py-2 text-sm text-stone-100">Set up 2FA</button>
 			</form>
-			{#if form?.message}<p class="mt-2 text-sm text-red-600">{form.message}</p>{/if}
+			{#if form?.message && form?.section === 'twofa'}<p class="mt-2 text-sm text-red-600">
+					{form.message}
+				</p>{/if}
 		{/if}
 	</section>
 </div>

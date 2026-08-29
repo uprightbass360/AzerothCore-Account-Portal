@@ -38,7 +38,7 @@ describe('password action', () => {
 
 	it('rejects mismatched confirm locally', async () => {
 		const res = await actions.password(formEvent({ ...good, confirm: 'other9999' }));
-		expect(res).toMatchObject({ status: 400 });
+		expect(res).toMatchObject({ status: 400, data: { section: 'password' } });
 		expect(api).not.toHaveBeenCalled();
 	});
 
@@ -48,20 +48,26 @@ describe('password action', () => {
 			data: { detail: 'Current password is incorrect' }
 		});
 		const res = await actions.password(formEvent(good));
-		expect(res).toMatchObject({ status: 403, data: { message: 'Current password is incorrect' } });
+		expect(res).toMatchObject({
+			status: 403,
+			data: { message: 'Current password is incorrect', section: 'password' }
+		});
 	});
 
 	it('falls back to a default message when the backend omits detail', async () => {
 		vi.mocked(api).mockResolvedValue({ status: 422, data: {} });
 		const res = await actions.password(formEvent(good));
-		expect(res).toMatchObject({ status: 422, data: { message: 'Password change failed' } });
+		expect(res).toMatchObject({
+			status: 422,
+			data: { message: 'Password change failed', section: 'password' }
+		});
 	});
 });
 
 describe('2fa actions', () => {
 	it('disable2fa rejects an invalid code locally', async () => {
 		const res = await actions.disable2fa(formEvent({ password: 'pw', code: 'abc' }));
-		expect(res).toMatchObject({ status: 400 });
+		expect(res).toMatchObject({ status: 400, data: { section: 'twofa' } });
 		expect(api).not.toHaveBeenCalled();
 	});
 
@@ -75,18 +81,24 @@ describe('2fa actions', () => {
 	it('setup2fa surfaces 409', async () => {
 		vi.mocked(api).mockResolvedValue({ status: 409, data: { detail: '2FA already enabled' } });
 		const res = await actions.setup2fa(formEvent({}));
-		expect(res).toMatchObject({ status: 409 });
+		expect(res).toMatchObject({
+			status: 409,
+			data: { message: '2FA already enabled', section: 'twofa' }
+		});
 	});
 
 	it('setup2fa falls back to a default message when the backend omits detail', async () => {
 		vi.mocked(api).mockResolvedValue({ status: 500, data: {} });
 		const res = await actions.setup2fa(formEvent({}));
-		expect(res).toMatchObject({ status: 500, data: { message: '2FA setup failed' } });
+		expect(res).toMatchObject({
+			status: 500,
+			data: { message: '2FA setup failed', section: 'twofa' }
+		});
 	});
 
 	it('confirm2fa validates code then confirms', async () => {
 		let res = await actions.confirm2fa(formEvent({ code: 'abc' }));
-		expect(res).toMatchObject({ status: 400 });
+		expect(res).toMatchObject({ status: 400, data: { setupPending: true, section: 'twofa' } });
 		vi.mocked(api).mockResolvedValue({ status: 200, data: { ok: true } });
 		res = await actions.confirm2fa(formEvent({ code: '123456' }));
 		expect(res).toEqual({ enabled: true });
@@ -94,7 +106,7 @@ describe('2fa actions', () => {
 		res = await actions.confirm2fa(formEvent({ code: '123456' }));
 		expect(res).toMatchObject({
 			status: 400,
-			data: { message: 'Invalid code', setupPending: true }
+			data: { message: 'Invalid code', setupPending: true, section: 'twofa' }
 		});
 	});
 
@@ -103,7 +115,7 @@ describe('2fa actions', () => {
 		const res = await actions.confirm2fa(formEvent({ code: '123456' }));
 		expect(res).toMatchObject({
 			status: 400,
-			data: { message: 'Confirmation failed', setupPending: true }
+			data: { message: 'Confirmation failed', setupPending: true, section: 'twofa' }
 		});
 	});
 
@@ -113,12 +125,18 @@ describe('2fa actions', () => {
 		expect(res).toEqual({ disabled: true });
 		vi.mocked(api).mockResolvedValue({ status: 403, data: { detail: 'Password is incorrect' } });
 		res = await actions.disable2fa(formEvent({ password: 'pw', code: '123456' }));
-		expect(res).toMatchObject({ status: 403 });
+		expect(res).toMatchObject({
+			status: 403,
+			data: { message: 'Password is incorrect', section: 'twofa' }
+		});
 	});
 
 	it('disable2fa falls back to a default message when the backend omits detail', async () => {
 		vi.mocked(api).mockResolvedValue({ status: 400, data: {} });
 		const res = await actions.disable2fa(formEvent({ password: 'pw', code: '123456' }));
-		expect(res).toMatchObject({ status: 400, data: { message: 'Disable failed' } });
+		expect(res).toMatchObject({
+			status: 400,
+			data: { message: 'Disable failed', section: 'twofa' }
+		});
 	});
 });
