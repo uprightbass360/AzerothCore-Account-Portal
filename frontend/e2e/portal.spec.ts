@@ -18,14 +18,12 @@ async function backendApi(method: string, path: string, body?: unknown, token?: 
 	return { status: res.status, data: await res.json() };
 }
 
-test('invite → register → login → change password', async ({ page }) => {
+test('admin login, password change, admin area', async ({ page }) => {
 	test.skip(!KEY || !ADMIN_USER, 'set PORTAL_INTERNAL_API_KEY / PORTAL_E2E_ADMIN_USER(_PASS)');
 
-	// Setup via API: log in as admin, send an invite, read the link out of the mailer?
-	// No mailbox in e2e — instead create the invite row via the API and capture the link
-	// from the admin UI is not possible either (token is only in the email).
-	// So: use a dedicated test-only path — the invite email. For the smoke test we accept
-	// SMTP pointing at MailHog (compose override) OR skip registration when unavailable:
+	// Registration isn't exercised here: reading the invite token out of the mailer needs
+	// SMTP pointed at MailHog (or similar) in the compose override, which isn't assumed
+	// to be present for this smoke test.
 	const login = await backendApi('POST', '/api/v1/auth/login', {
 		username: ADMIN_USER,
 		password: ADMIN_PASS

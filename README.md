@@ -18,9 +18,9 @@ stack's Docker network so they can reach `ac-worldserver` and `ac-mysql` by serv
 - SOAP enabled on the worldserver: `SOAP_PORT=7878` in the stack's env, with `AC_SOAP_PORT`
   wired through to the worldserver config — this is already the RealmMaster default, so
   most deployments need no changes here.
-- An SMTP relay the portal can send through (invite emails and password-reset-adjacent
-  notices). Any relay you already control works — a real provider, an internal relay, or a
-  local `postfix`/`msmtp` container.
+- An SMTP relay the portal can send through (invite emails). Any relay you already
+  control works — a real provider, an internal relay, or a local `postfix`/`msmtp`
+  container.
 
 ## One-time AzerothCore setup
 
@@ -57,9 +57,9 @@ help account set
 Confirm `account set 2fa <username> off` is listed — the portal relies on it to disable
 2FA server-side. Also check whether `account set email <username> <email> <email>` exists.
 If your build does not have `account set email`, the portal's `SoapClient.set_email` call
-will fault; the accepted fallback (see Task 6) is to make `set_email` a no-op that returns
-`""` and keep the email address portal-side only, updating `SoapClient.set_email` and its
-tests accordingly. Do this check before pointing the portal at a stack you care about.
+will fault; the accepted fallback is to make `set_email` a no-op that returns `""` and
+keep the email address portal-side only, updating `SoapClient.set_email` and its tests
+accordingly. Do this check before pointing the portal at a stack you care about.
 
 ## Install
 
@@ -131,7 +131,9 @@ npm run dev
 npx vitest run --coverage
 ```
 
-End-to-end tests against a full stack are covered separately in Task 19.
+End-to-end tests against a full stack live in `frontend/e2e/` (Playwright) and need a
+running backend plus admin credentials — see the env vars checked at the top of
+`frontend/e2e/portal.spec.ts`. Without them, `npx playwright test` cleanly skips.
 
 ## Security model
 
@@ -169,8 +171,8 @@ Confirm the response is `{"status": "ok", "checks": {"acore_auth": "ok", "soap":
 - `account set 2fa <username> off` is accepted — this is required for the portal's
   "disable 2FA" flow to work.
 - Whether `account set email <username> <email> <email>` exists. If it does not, apply the
-  Task 6 fallback noted above: make `SoapClient.set_email` a no-op returning `""` and keep
-  the email address portal-side only, and update its tests to match.
+  fallback noted above: make `SoapClient.set_email` a no-op returning `""` and keep the
+  email address portal-side only, and update its tests to match.
 
 This local change verified everything that does not require a live RealmMaster stack:
 both Docker images build cleanly, `docker compose config` resolves against a filled-in
