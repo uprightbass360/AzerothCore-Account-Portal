@@ -123,6 +123,15 @@ async def test_lock_unlock(client, admin_login, seed_account, login, portal_db):
                               headers=bearer(token))).status_code == 400  # self
 
 
+@respx.mock
+async def test_unlock_unknown_account_404(client, admin_login):
+    token = await admin_login()
+    respx.post(SOAP).mock(return_value=ok("done"))
+    resp = await client.post("/api/v1/admin/accounts/ghost/unlock", headers=bearer(token))
+    assert resp.status_code == 404
+    assert resp.json()["detail"] == "Account not found"
+
+
 async def test_admins_crud(client, admin_login, seed_account, portal_db):
     token = await admin_login(90, "boss")
     await seed_account(1, "newmin")
