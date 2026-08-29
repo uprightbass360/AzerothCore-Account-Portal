@@ -54,6 +54,16 @@ async def test_internal_key_required(client):
     assert resp.status_code == 401
 
 
+async def test_docs_and_openapi_require_internal_key(client):
+    for path in ("/docs", "/redoc", "/openapi.json"):
+        resp = await client.get(path, headers={"X-Internal-Key": "wrong"})
+        assert resp.status_code in (401, 404)
+        assert "swagger" not in resp.text.lower()
+        assert "openapi" not in resp.text.lower()
+    resp = await client.get("/api/v1/health", headers={"X-Internal-Key": "wrong"})
+    assert resp.status_code == 200
+
+
 async def test_admin_seeding(settings, seed_account, portal_db):
     from tests.conftest import _create_schemas
     await _create_schemas(settings)

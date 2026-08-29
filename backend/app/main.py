@@ -45,7 +45,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         await app.state.engine.dispose()
         await app.state.acore_engine.dispose()
 
-    app = FastAPI(title="AzerothCore Account Portal", lifespan=lifespan)
+    app = FastAPI(title="AzerothCore Account Portal", lifespan=lifespan,
+                  docs_url=None, redoc_url=None, openapi_url=None)
     app.state.settings = settings
     app.state.engine = make_engine(settings.database_url)
     app.state.sessionmaker = make_sessionmaker(app.state.engine)
@@ -66,7 +67,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         # Enforced here (rather than per-router `dependencies=`) so it applies even to
         # paths that don't exist yet as routes in stub routers (Tasks 9-12 add them) --
         # FastAPI never runs router-level dependencies for a route that isn't registered.
-        if request.url.path != "/api/v1/health" and request.url.path.startswith("/api/v1/"):
+        # Fail closed: every path requires the key except exactly "/api/v1/health"
+        # (this also covers /docs, /redoc, /openapi.json and any unknown path).
+        if request.url.path != "/api/v1/health":
             expected = request.app.state.settings.internal_api_key
             provided = request.headers.get("x-internal-key", "")
             if not hmac.compare_digest(provided, expected):

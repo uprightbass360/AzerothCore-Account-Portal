@@ -1,4 +1,3 @@
-import hmac
 from datetime import timedelta
 
 from fastapi import Depends, Header, HTTPException, Request
@@ -27,13 +26,6 @@ def get_soap(request: Request) -> SoapClient:
 
 def get_mailer(request: Request) -> Mailer:
     return request.app.state.mailer
-
-
-async def require_internal_key(request: Request,
-                               x_internal_key: str = Header(default="")) -> None:
-    expected = request.app.state.settings.internal_api_key
-    if not hmac.compare_digest(x_internal_key, expected):
-        raise HTTPException(status_code=401, detail="Invalid internal API key")
 
 
 async def current_session(request: Request,
