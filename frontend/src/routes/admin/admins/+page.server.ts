@@ -30,7 +30,7 @@ export const actions: Actions = {
 		const { status, data } = await api<Detail>(
 			event,
 			'DELETE',
-			`/api/v1/admin/admins/${fd.get('account_id')}`
+			`/api/v1/admin/admins/${encodeURIComponent(String(fd.get('account_id')))}`
 		);
 		if (status === 200) return { revoked: true };
 		return fail(status, { message: data.detail ?? 'Revoke failed' });

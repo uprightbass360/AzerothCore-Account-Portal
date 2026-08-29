@@ -85,4 +85,14 @@ describe('lock and unlock actions', () => {
 		const res2 = await actions.unlock(formEvent({ username: 'VICTIM' }));
 		expect(res2).toMatchObject({ status: 500, data: { message: 'unlock failed' } });
 	});
+
+	it('url-encodes the username', async () => {
+		vi.mocked(api).mockResolvedValue({ status: 200, data: { ok: true } });
+		await actions.lock(formEvent({ username: 'weird/name?' }));
+		expect(api).toHaveBeenCalledWith(
+			expect.anything(),
+			'POST',
+			'/api/v1/admin/accounts/weird%2Fname%3F/lock'
+		);
+	});
 });

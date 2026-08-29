@@ -39,7 +39,7 @@ describe('login action', () => {
 	it('sets cookie and redirects on success', async () => {
 		vi.mocked(api).mockResolvedValue({
 			status: 200,
-			data: { token: 't0k', expires_at: '2027-01-01T00:00:00' }
+			data: { token: 't0k', expires_at: '2027-01-01T00:00:00Z' }
 		});
 		await expect(
 			actions.login(formEvent({ username: 'bob', password: 'pw123456' }))
@@ -47,7 +47,7 @@ describe('login action', () => {
 			status: 303,
 			location: '/account'
 		});
-		expect(setSessionCookie).toHaveBeenCalledWith(expect.anything(), 't0k', '2027-01-01T00:00:00');
+		expect(setSessionCookie).toHaveBeenCalledWith(expect.anything(), 't0k', '2027-01-01T00:00:00Z');
 	});
 
 	it('returns twofa step when required', async () => {
@@ -88,7 +88,7 @@ describe('twofa action', () => {
 	it('issues session on valid code', async () => {
 		vi.mocked(api).mockResolvedValue({
 			status: 200,
-			data: { token: 't0k', expires_at: '2027-01-01T00:00:00' }
+			data: { token: 't0k', expires_at: '2027-01-01T00:00:00Z' }
 		});
 		await expect(
 			actions.twofa(formEvent({ username: 'bob', password: 'pw123456', code: '123456' }))

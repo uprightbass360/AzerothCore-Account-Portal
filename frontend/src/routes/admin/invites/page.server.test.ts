@@ -75,4 +75,14 @@ describe('revoke action', () => {
 		const res = await actions.revoke(formEvent({ id: '9' }));
 		expect(res).toMatchObject({ status: 500, data: { message: 'Revoke failed' } });
 	});
+
+	it('url-encodes the id', async () => {
+		vi.mocked(api).mockResolvedValue({ status: 200, data: { ok: true } });
+		await actions.revoke(formEvent({ id: '3/../4' }));
+		expect(api).toHaveBeenCalledWith(
+			expect.anything(),
+			'DELETE',
+			'/api/v1/admin/invites/3%2F..%2F4'
+		);
+	});
 });

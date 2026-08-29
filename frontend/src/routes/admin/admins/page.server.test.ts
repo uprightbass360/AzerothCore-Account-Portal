@@ -61,4 +61,14 @@ describe('grant and revoke actions', () => {
 		const revokeRes = await actions.revoke(formEvent({ account_id: '5' }));
 		expect(revokeRes).toMatchObject({ status: 500, data: { message: 'Revoke failed' } });
 	});
+
+	it('url-encodes the account_id', async () => {
+		vi.mocked(api).mockResolvedValue({ status: 200, data: { ok: true } });
+		await actions.revoke(formEvent({ account_id: '5/../6' }));
+		expect(api).toHaveBeenCalledWith(
+			expect.anything(),
+			'DELETE',
+			'/api/v1/admin/admins/5%2F..%2F6'
+		);
+	});
 });

@@ -6,7 +6,7 @@ vi.mock('$env/dynamic/private', () => ({
 }));
 
 import { env } from '$env/dynamic/private';
-import { api, clearSessionCookie, setSessionCookie } from './api';
+import { api, clearSessionCookie, refreshSessionCookie, setSessionCookie } from './api';
 
 function makeEvent(cookie?: string): RequestEvent & { fetchMock: ReturnType<typeof vi.fn> } {
 	const fetchMock = vi
@@ -69,13 +69,13 @@ describe('api', () => {
 describe('cookies', () => {
 	it('sets and clears the session cookie', () => {
 		const event = makeEvent();
-		setSessionCookie(event, 'tok', '2027-01-01T00:00:00');
+		setSessionCookie(event, 'tok', '2027-01-01T00:00:00Z');
 		expect(event.cookies.set).toHaveBeenCalledWith('session', 'tok', {
 			path: '/',
 			httpOnly: true,
 			sameSite: 'lax',
 			secure: true,
-			expires: new Date('2027-01-01T00:00:00')
+			expires: new Date('2027-01-01T00:00:00Z')
 		});
 		clearSessionCookie(event);
 		expect(event.cookies.delete).toHaveBeenCalledWith('session', { path: '/' });
@@ -84,7 +84,30 @@ describe('cookies', () => {
 	it('secure=false on http origins', () => {
 		const event = makeEvent();
 		(event as { url: URL }).url = new URL('http://localhost:3000/');
-		setSessionCookie(event, 'tok', '2027-01-01T00:00:00');
+		setSessionCookie(event, 'tok', '2027-01-01T00:00:00Z');
 		expect((event.cookies.set as ReturnType<typeof vi.fn>).mock.calls[0][2].secure).toBe(false);
+	});
+});
+
+describe('refreshSessionCookie', () => {
+	it('re-sets the session cookie ~7 days out when a session cookie is present', () => {
+		const event = makeEvent('tok123');
+		const before = Date.now();
+		refreshSessionCookie(event);
+		const after = Date.now();
+		expect(event.cookies.set).toHaveBeenCalledTimes(1);
+		const [name, token, opts] = (event.cookies.set as ReturnType<typeof vi.fn>).mock.calls[0];
+		expect(name).toBe('session');
+		expect(token).toBe('tok123');
+		const expires = (opts as { expires: Date }).expires;
+		const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+		expect(expires.getTime()).toBeGreaterThanOrEqual(before + sevenDaysMs);
+		expect(expires.getTime()).toBeLessThanOrEqual(after + sevenDaysMs);
+	});
+
+	it('does nothing when there is no session cookie', () => {
+		const event = makeEvent(undefined);
+		refreshSessionCookie(event);
+		expect(event.cookies.set).not.toHaveBeenCalled();
 	});
 });

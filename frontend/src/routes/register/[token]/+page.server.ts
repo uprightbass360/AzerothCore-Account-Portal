@@ -8,7 +8,7 @@ export const load: PageServerLoad = async (event) => {
 	const { status, data } = await api<{ email?: string; detail?: string }>(
 		event,
 		'GET',
-		`/api/v1/register/${event.params.token}`
+		`/api/v1/register/${encodeURIComponent(event.params.token)}`
 	);
 	if (status !== 200) return { invalid: data.detail ?? 'This invite link is not valid' };
 	return { email: data.email };
@@ -21,7 +21,7 @@ export const actions: Actions = {
 		const { status, data } = await api<{ username?: string; detail?: string }>(
 			event,
 			'POST',
-			`/api/v1/register/${event.params.token}`,
+			`/api/v1/register/${encodeURIComponent(event.params.token)}`,
 			{ username: parsed.data.username, password: parsed.data.password }
 		);
 		if (status === 201) return { success: true, username: data.username };

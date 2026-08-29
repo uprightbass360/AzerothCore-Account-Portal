@@ -38,7 +38,7 @@ async function act(event: RequestEvent, verb: 'lock' | 'unlock') {
 	const { status, data } = await api<Detail>(
 		event,
 		'POST',
-		`/api/v1/admin/accounts/${fd.get('username')}/${verb}`
+		`/api/v1/admin/accounts/${encodeURIComponent(String(fd.get('username')))}/${verb}`
 	);
 	if (status === 200) return { done: true };
 	return fail(status, { message: data.detail ?? `${verb} failed` });
