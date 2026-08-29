@@ -59,7 +59,9 @@
 	<div class="mt-4 flex gap-2 text-sm">
 		{#each Array.from({ length: data.pages }, (_, i) => i + 1) as p (p)}
 			<a
-				href={resolve(`/admin/accounts?search=${data.search}&page=${p}`)}
+				href={resolve(
+					`/admin/accounts?${new URLSearchParams({ search: data.search, page: String(p) })}`
+				)}
 				class="rounded px-3 py-1 {p === data.page ? 'bg-stone-900 text-stone-100' : 'bg-white'}"
 				>{p}</a
 			>
