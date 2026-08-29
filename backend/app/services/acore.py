@@ -77,7 +77,7 @@ class AcoreReader:
         base = select(*_COLS)
         count = select(func.count()).select_from(account)
         if search:
-            cond = account.c.username.like(f"%{search.upper()}%")
+            cond = func.upper(account.c.username).like(f"%{search.upper()}%")
             base, count = base.where(cond), count.where(cond)
         async with self._engine.connect() as conn:
             total = (await conn.execute(count)).scalar_one()

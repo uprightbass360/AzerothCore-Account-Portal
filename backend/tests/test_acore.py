@@ -70,3 +70,11 @@ async def test_banned(engine, reader):
 async def test_ping(engine, reader):
     assert await reader.ping() is True
     await engine.dispose()
+
+
+async def test_list_accounts_search_case_insensitive(engine, reader):
+    # Test case-insensitive search: username stored as mixed-case should match lowercase search
+    await insert_account(engine, 1, "MixedCase")
+    await insert_account(engine, 2, "Other")
+    rows, total = await reader.list_accounts(search="mixed")
+    assert total == 1 and len(rows) == 1 and rows[0].username == "MixedCase"
