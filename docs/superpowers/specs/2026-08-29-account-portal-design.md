@@ -55,7 +55,8 @@ azerothcore-account-portal/
   (declared `external: true`; network name from env) and reaches:
   - `ac-worldserver:7878` — SOAP (`urn:AC` envelope), for all writes:
     `.account create`, `.account set password`, `.account set 2fa`,
-    `.account lock`.
+    `.ban account` / `.unban account` (AC's `.account lock` is self-service
+    only, so admin lock/unlock is implemented as a permanent ban/unban).
   - `ac-mysql` — read-only MySQL user (`GRANT SELECT ON acore_auth.*`,
     documented in README) for account listing, SRP6 salt/verifier lookup, and
     TOTP secret lookup.
@@ -117,8 +118,9 @@ Read-only view in the admin UI, newest first, filterable by action.
 
 ### Reads from `acore_auth` (SELECT only)
 
-`account` (id, username, email, salt, verifier, totp_secret, locked,
-last_login, joindate). No other tables, no triggers, no writes, ever. The
+`account` (id, username, email, salt, verifier, totp_secret, last_login,
+joindate) and `account_banned` (active bans, to display and enforce
+locked state). No other tables, no triggers, no writes, ever. The
 reader uses SQLAlchemy Core so tests can run it against a SQLite copy of the
 schema.
 
@@ -161,9 +163,13 @@ account revoked.
 
 ### 2FA self-service (logged in)
 
-Backend generates a base32 secret, shows QR (otpauth URI rendered as SVG
-server-side) + manual code → user must submit a valid TOTP to confirm → only
-then SOAP `.account set 2fa <user> <secret>`. Disable requires password +
+Backend generates a **16-character base32 secret (10 random bytes)** — AC's
+SOAP command requires exactly this length (same convention as RealmMaster's
+`generate-2fa-qr.py`) — shows QR (otpauth URI rendered as SVG server-side) +
+manual code → user must submit a valid TOTP to confirm → only then SOAP
+`.account set 2fa <user> <secret>`. AC stores the base32-*decoded* raw bytes
+in `account.totp_secret`, so the web-login TOTP check re-encodes the DB value
+with `b32encode` before handing it to pyotp. Disable requires password +
 current code. Issuer comes from env (default: realm name), mirroring the
 RealmMaster scripts' convention.
 
