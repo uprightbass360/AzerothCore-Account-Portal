@@ -59,6 +59,17 @@ async def test_internal_key_required(client):
     assert resp.status_code == 401
 
 
+async def test_internal_key_non_ascii_header_is_rejected_not_500(client):
+    # Header values travel over the wire as raw bytes; simulate a client sending
+    # non-ASCII garbage rather than a valid key (previously raised TypeError -> 500).
+    resp = await client.post(
+        "/api/v1/auth/login",
+        headers={"X-Internal-Key": b"wrong-\xe9\xe8\xea"},
+        json={"username": "a", "password": "b"},
+    )
+    assert resp.status_code == 401
+
+
 async def test_docs_and_openapi_require_internal_key(client):
     for path in ("/docs", "/redoc", "/openapi.json"):
         resp = await client.get(path, headers={"X-Internal-Key": "wrong"})

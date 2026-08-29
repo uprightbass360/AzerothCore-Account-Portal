@@ -9,7 +9,7 @@ from app.core.deps import get_db, get_reader, get_soap
 from app.core.security import hash_token
 from app.db.base import utcnow
 from app.db.models import Invite
-from app.services.acore import AcoreReader
+from app.services.acore import AccountRow, AcoreReader
 from app.services.audit import record
 from app.services.soap import SoapClient, SoapError
 
@@ -55,6 +55,20 @@ async def check_username(
     return {"valid": True, "available": not await reader.username_exists(username)}
 
 
+async def _maybe_repair(db: AsyncSession, inv: Invite, acct: AccountRow) -> dict | None:
+    """A 409 on account creation can mean a prior redemption crashed after SOAP
+    account_create succeeded but before the invite was marked used. If the existing
+    account's email matches the invite's, treat this as that crashed redemption and
+    repair the invite record instead of surfacing a plain conflict."""
+    if acct.email is None or acct.email.lower() != inv.email.lower():
+        return None
+    inv.used_at = utcnow()
+    inv.account_id = acct.id
+    await record(db, "invite.redeemed", inv.email, detail={"repair": True})
+    await db.commit()
+    return {"username": acct.username}
+
+
 @router.post("/{token}", status_code=201)
 async def register(
     token: str,
@@ -69,13 +83,22 @@ async def register(
     if not PASSWORD_RE.fullmatch(body.password):
         raise HTTPException(status_code=422, detail="Invalid password")
     username = body.username.upper()
-    if await reader.username_exists(username):
+    existing = await reader.get_account(username)
+    if existing is not None:
+        repaired = await _maybe_repair(db, inv, existing)
+        if repaired is not None:
+            return repaired
         raise HTTPException(status_code=409, detail="Username already taken")
 
     try:
         await soap.account_create(username, body.password)
     except SoapError as exc:
         if "exist" in exc.message.lower():
+            existing = await reader.get_account(username)
+            if existing is not None:
+                repaired = await _maybe_repair(db, inv, existing)
+                if repaired is not None:
+                    return repaired
             raise HTTPException(status_code=409, detail="Username already taken") from exc
         raise  # global handler → 503
 

@@ -14,6 +14,7 @@ async def test_login_success(client, seed_account, portal_db):
     assert resp.status_code == 200
     body = resp.json()
     assert "token" in body and "expires_at" in body
+    assert body["expires_at"].endswith("Z")  # explicit UTC, not naive local time
     sess = (await portal_db.execute(select(PortalSession))).scalar_one()
     assert sess.account_id == 1 and sess.username == "TESTUSER"
     log = (await portal_db.execute(select(AuditLog))).scalar_one()

@@ -65,7 +65,7 @@ async def _issue(request: Request, db: AsyncSession, acct: AccountRow) -> dict:
         db, "login.success", acct.username, actor_account_id=acct.id, detail={"ip": sess.ip}
     )
     await db.commit()
-    return {"token": raw, "expires_at": sess.expires_at.isoformat()}
+    return {"token": raw, "expires_at": sess.expires_at.isoformat() + "Z"}
 
 
 @router.post("/login")

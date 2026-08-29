@@ -77,7 +77,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if request.url.path != "/api/v1/health":
             expected = request.app.state.settings.internal_api_key
             provided = request.headers.get("x-internal-key", "")
-            if not hmac.compare_digest(provided, expected):
+            # provided may contain arbitrary bytes smuggled in via latin-1 header
+            # encoding; compare as bytes so garbage input yields 401, not a 500.
+            if not hmac.compare_digest(provided.encode("latin-1", "replace"), expected.encode()):
                 return JSONResponse(status_code=401, content={"detail": "Invalid internal API key"})
         return await call_next(request)
 

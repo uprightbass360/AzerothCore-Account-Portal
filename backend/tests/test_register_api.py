@@ -109,10 +109,104 @@ async def test_register_username_taken_locally(client, make_invite, seed_account
     assert resp.status_code == 409
 
 
+async def test_register_local_repair_matching_email(client, make_invite, seed_account, portal_db):
+    await seed_account(1, "TAKEN", email="crashed@player.com")
+    raw, inv_id = await make_invite(email="crashed@player.com")
+    resp = await client.post(
+        f"/api/v1/register/{raw}", json={"username": "taken", "password": "hunter2!!"}
+    )
+    assert resp.status_code == 201, resp.text
+    assert resp.json() == {"username": "TAKEN"}
+    inv = await portal_db.get(Invite, inv_id)
+    assert inv.used_at is not None and inv.account_id == 1
+    logs = (await portal_db.execute(select(AuditLog))).scalars().all()
+    redeemed = next(l for l in logs if l.action == "invite.redeemed")
+    assert redeemed.detail == {"repair": True}
+    # invite is now consumed, further attempts are 410
+    resp = await client.post(
+        f"/api/v1/register/{raw}", json={"username": "taken", "password": "hunter2!!"}
+    )
+    assert resp.status_code == 410
+
+
+async def test_register_local_conflict_non_matching_email(client, make_invite, seed_account):
+    await seed_account(1, "TAKEN", email="someone-else@player.com")
+    raw, _ = await make_invite(email="crashed@player.com")
+    resp = await client.post(
+        f"/api/v1/register/{raw}", json={"username": "taken", "password": "hunter2!!"}
+    )
+    assert resp.status_code == 409
+
+
 @respx.mock
 async def test_register_soap_says_exists(client, make_invite):
     respx.post(SOAP).mock(return_value=fault("Account with this name already exist!"))
     raw, _ = await make_invite()
+    resp = await client.post(
+        f"/api/v1/register/{raw}", json={"username": "Racer", "password": "hunter2!!"}
+    )
+    assert resp.status_code == 409
+
+
+@respx.mock
+async def test_register_soap_fault_repair_matching_email(client, make_invite, portal_db, app):
+    # Simulate a race: the account doesn't exist yet when the local check runs, but a
+    # concurrent (crashed) redemption creates it by the time SOAP account_create replies
+    # with an "already exists" fault. The fault path must also recognize a repair.
+    from app.core.srp6 import calculate_verifier
+    from app.services import acore
+    from tests.conftest import SALT
+
+    async def fault_and_create(request):
+        async with app.state.acore_engine.begin() as conn:
+            await conn.execute(
+                acore.account.insert().values(
+                    id=7,
+                    username="RACER",
+                    email="racer@player.com",
+                    salt=SALT,
+                    verifier=calculate_verifier("RACER", "hunter2!!", SALT),
+                    totp_secret=None,
+                )
+            )
+        return fault("Account with this name already exist!")
+
+    respx.post(SOAP).mock(side_effect=fault_and_create)
+    raw, inv_id = await make_invite(email="racer@player.com")
+    resp = await client.post(
+        f"/api/v1/register/{raw}", json={"username": "Racer", "password": "hunter2!!"}
+    )
+    assert resp.status_code == 201, resp.text
+    assert resp.json() == {"username": "RACER"}
+    inv = await portal_db.get(Invite, inv_id)
+    assert inv.used_at is not None and inv.account_id == 7
+    logs = (await portal_db.execute(select(AuditLog))).scalars().all()
+    redeemed = next(l for l in logs if l.action == "invite.redeemed")
+    assert redeemed.detail == {"repair": True}
+
+
+@respx.mock
+async def test_register_soap_fault_non_matching_email_stays_409(client, make_invite, app):
+    from app.core.srp6 import calculate_verifier
+    from app.services import acore
+    from tests.conftest import SALT
+
+    async def fault_and_create(request):
+        async with app.state.acore_engine.begin() as conn:
+            await conn.execute(
+                acore.account.insert().values(
+                    id=7,
+                    username="RACER",
+                    email="someone-else@player.com",
+                    salt=SALT,
+                    verifier=calculate_verifier("RACER", "hunter2!!", SALT),
+                    totp_secret=None,
+                )
+            )
+        return fault("Account with this name already exist!")
+
+    respx.post(SOAP).mock(side_effect=fault_and_create)
+    raw, _ = await make_invite(email="racer@player.com")
     resp = await client.post(
         f"/api/v1/register/{raw}", json={"username": "Racer", "password": "hunter2!!"}
     )
