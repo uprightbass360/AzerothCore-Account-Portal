@@ -16,12 +16,12 @@ export const load: PageServerLoad = async (event) => {
 
 export const actions: Actions = {
 	default: async (event) => {
-		const { status, data } = await api<{ username?: string } & Detail>(
+		const { status, data } = await api<{ username?: string; new_email?: string } & Detail>(
 			event,
 			'POST',
 			`/api/v1/email-change/${encodeURIComponent(event.params.token)}`
 		);
-		if (status === 200) return { success: true, username: data.username };
+		if (status === 200) return { success: true, username: data.username, newEmail: data.new_email };
 		return fail(status, { message: data.detail ?? 'Confirmation failed' });
 	}
 };

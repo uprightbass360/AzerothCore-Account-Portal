@@ -46,4 +46,4 @@ async def confirm_change(
     change.used_at = utcnow()
     await record(db, "email.changed", change.new_email, actor_account_id=change.account_id)
     await db.commit()
-    return {"ok": True, "username": acct.username}
+    return {"ok": True, "username": acct.username, "new_email": change.new_email}

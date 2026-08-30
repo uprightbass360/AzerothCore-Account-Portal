@@ -9,7 +9,7 @@
 	{#if form?.success}
 		<h1 class="wow-heading mb-3 text-xl">Email updated</h1>
 		<p class="text-sm text-parchment/70">
-			The email for <b>{form.username}</b> is now <b>{data.newEmail}</b>.
+			The email for <b>{form.username}</b> is now <b>{form.newEmail}</b>.
 		</p>
 	{:else if data.invalid}
 		<h1 class="wow-heading mb-3 text-xl">Link not valid</h1>

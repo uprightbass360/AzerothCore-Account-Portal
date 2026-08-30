@@ -128,7 +128,11 @@ async def test_confirm_success(client, app, seed_account, portal_db):
     raw = await make_change_row(app)
     route = respx.post(SOAP).mock(return_value=ok("Email set"))
     resp = await client.post(f"/api/v1/email-change/{raw}")
-    assert resp.status_code == 200 and resp.json() == {"ok": True, "username": "TESTUSER"}
+    assert resp.status_code == 200 and resp.json() == {
+        "ok": True,
+        "username": "TESTUSER",
+        "new_email": "new@addr.example",
+    }
     assert b"account set email TESTUSER new@addr.example new@addr.example" in (
         route.calls.last.request.content
     )

@@ -39,8 +39,15 @@ describe('load', () => {
 
 describe('confirm action', () => {
 	it('confirms and returns the username', async () => {
-		vi.mocked(api).mockResolvedValue({ status: 200, data: { username: 'TESTUSER' } });
-		expect(await actions.default(makeEvent())).toEqual({ success: true, username: 'TESTUSER' });
+		vi.mocked(api).mockResolvedValue({
+			status: 200,
+			data: { username: 'TESTUSER', new_email: 'new@addr.example' }
+		});
+		expect(await actions.default(makeEvent())).toEqual({
+			success: true,
+			username: 'TESTUSER',
+			newEmail: 'new@addr.example'
+		});
 		expect(api).toHaveBeenCalledWith(expect.anything(), 'POST', '/api/v1/email-change/tok%2F123');
 	});
 
