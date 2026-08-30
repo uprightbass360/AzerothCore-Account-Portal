@@ -4,6 +4,8 @@
 	let { form } = $props();
 </script>
 
+<svelte:head><title>Log in · Account Portal</title></svelte:head>
+
 <div class="mx-auto max-w-sm rounded border border-stone-300 bg-white p-6 shadow-sm">
 	{#if form?.twofa}
 		<h1 class="mb-4 text-lg font-semibold">Two-factor authentication</h1>

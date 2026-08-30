@@ -6,6 +6,8 @@
 	const totpOn = $derived((user.totp_enabled || form?.enabled) && !form?.disabled);
 </script>
 
+<svelte:head><title>Your account · Account Portal</title></svelte:head>
+
 <h1 class="mb-6 text-xl font-semibold">Your account</h1>
 
 <div class="grid gap-6 md:grid-cols-2">

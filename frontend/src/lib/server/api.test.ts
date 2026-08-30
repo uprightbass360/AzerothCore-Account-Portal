@@ -111,3 +111,34 @@ describe('refreshSessionCookie', () => {
 		expect(event.cookies.set).not.toHaveBeenCalled();
 	});
 });
+
+describe('detail normalization', () => {
+	async function apiWith(payload: unknown, status = 422) {
+		const event = makeEvent();
+		event.fetchMock.mockResolvedValue(new Response(JSON.stringify(payload), { status }));
+		return api<Record<string, unknown>>(event, 'POST', '/x');
+	}
+
+	it('flattens FastAPI validation-error arrays into readable text', async () => {
+		const res = await apiWith({
+			detail: [
+				{ loc: ['body', 'email'], msg: 'value is not a valid email address', type: 'value_error' },
+				{ loc: ['body', 'other'], msg: 'field required', type: 'missing' }
+			]
+		});
+		expect(res.data.detail).toBe('value is not a valid email address; field required');
+	});
+
+	it('handles array items without msg and empty arrays', async () => {
+		expect((await apiWith({ detail: ['plain', 42] })).data.detail).toBe('plain; 42');
+		expect((await apiWith({ detail: [] })).data.detail).toBe('Invalid input');
+	});
+
+	it('replaces non-array object details and preserves strings/absent', async () => {
+		expect((await apiWith({ detail: { odd: true } })).data.detail).toBe('Invalid input');
+		expect((await apiWith({ detail: 'kept as-is' })).data.detail).toBe('kept as-is');
+		expect((await apiWith({ detail: null })).data.detail).toBeNull();
+		expect((await apiWith({ ok: true })).data.detail).toBeUndefined();
+		expect((await apiWith('not an object', 200)).data).toBe('not an object');
+	});
+});

@@ -32,7 +32,32 @@ export async function api<T = Record<string, unknown>>(
 	}
 	const res = await event.fetch(`${env.BACKEND_URL}${path}`, init);
 	const data = (await res.json().catch(() => ({}))) as T;
+	normalizeDetail(data);
 	return { status: res.status, data };
+}
+
+/**
+ * FastAPI validation errors (422) carry `detail` as an array of error objects, which
+ * would render as "[object Object]" wherever the UI shows `data.detail`. Flatten any
+ * non-string detail into a readable message in place.
+ */
+function normalizeDetail(data: unknown): void {
+	if (typeof data !== 'object' || data === null || !('detail' in data)) return;
+	const record = data as Record<string, unknown>;
+	const detail = record.detail;
+	if (typeof detail === 'string' || detail === undefined || detail === null) return;
+	if (Array.isArray(detail)) {
+		const msgs = detail
+			.map((item) =>
+				typeof item === 'object' && item !== null && 'msg' in item
+					? String((item as Record<string, unknown>).msg)
+					: String(item)
+			)
+			.filter(Boolean);
+		record.detail = msgs.length ? msgs.join('; ') : 'Invalid input';
+	} else {
+		record.detail = 'Invalid input';
+	}
 }
 
 export function setSessionCookie(event: RequestEvent, token: string, expiresAt: string): void {

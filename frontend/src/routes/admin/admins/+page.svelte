@@ -4,6 +4,8 @@
 	let { data, form } = $props();
 </script>
 
+<svelte:head><title>Admins · Admin · Account Portal</title></svelte:head>
+
 <section class="mb-6 rounded border border-stone-300 bg-white p-5 shadow-sm">
 	<h2 class="mb-3 font-medium">Grant portal admin</h2>
 	{#if form?.granted}<p class="mb-2 text-sm text-green-700">{form.granted} is now an admin.</p>{/if}

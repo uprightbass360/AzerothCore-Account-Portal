@@ -4,6 +4,8 @@
 	let { data, form } = $props();
 </script>
 
+<svelte:head><title>Invites · Admin · Account Portal</title></svelte:head>
+
 <section class="mb-6 rounded border border-stone-300 bg-white p-5 shadow-sm">
 	<h2 class="mb-3 font-medium">Send an invite</h2>
 	{#if form?.sent}<p class="mb-2 text-sm text-green-700">Invite sent to {form.sent}.</p>{/if}

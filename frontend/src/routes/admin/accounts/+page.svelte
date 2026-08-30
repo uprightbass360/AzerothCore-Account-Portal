@@ -4,6 +4,8 @@
 	let { data, form } = $props();
 </script>
 
+<svelte:head><title>Accounts · Admin · Account Portal</title></svelte:head>
+
 <form method="GET" class="mb-4 flex gap-3">
 	<input
 		name="search"
@@ -40,12 +42,14 @@
 					<td class="px-4 py-2">{a.totp_enabled ? 'on' : 'off'}</td>
 					<td class="px-4 py-2">{a.locked ? '🔒 locked' : 'active'}</td>
 					<td class="px-4 py-2 text-right">
-						<form method="POST" action={a.locked ? '?/unlock' : '?/lock'} use:enhance>
-							<input type="hidden" name="username" value={a.username} />
-							<button class="hover:underline {a.locked ? 'text-stone-700' : 'text-red-700'}">
-								{a.locked ? 'Unlock' : 'Lock'}
-							</button>
-						</form>
+						{#if a.username !== data.user?.username}
+							<form method="POST" action={a.locked ? '?/unlock' : '?/lock'} use:enhance>
+								<input type="hidden" name="username" value={a.username} />
+								<button class="hover:underline {a.locked ? 'text-stone-700' : 'text-red-700'}">
+									{a.locked ? 'Unlock' : 'Lock'}
+								</button>
+							</form>
+						{/if}
 					</td>
 				</tr>
 			{:else}

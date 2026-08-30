@@ -19,6 +19,8 @@
 	];
 </script>
 
+<svelte:head><title>Audit log · Admin · Account Portal</title></svelte:head>
+
 <form method="GET" class="mb-4 flex gap-3 text-sm">
 	<select name="action" class="rounded border border-stone-300 px-3 py-2">
 		{#each ACTIONS as a (a)}

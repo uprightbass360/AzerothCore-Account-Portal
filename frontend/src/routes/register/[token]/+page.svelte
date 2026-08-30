@@ -33,16 +33,18 @@
 	});
 </script>
 
+<svelte:head><title>Create your account · Account Portal</title></svelte:head>
+
 <div class="mx-auto max-w-sm rounded border border-stone-300 bg-white p-6 shadow-sm">
-	{#if data.invalid}
-		<h1 class="mb-2 text-lg font-semibold">Invite not valid</h1>
-		<p class="text-sm text-stone-600">{data.invalid}</p>
-	{:else if form?.success}
+	{#if form?.success}
 		<h1 class="mb-2 text-lg font-semibold">Account created</h1>
 		<p class="text-sm text-stone-600">
 			Your account <b>{form.username}</b> is ready. Use it in the game client, or
 			<a href={resolve('/login')} class="underline">log in to the portal</a> to manage it.
 		</p>
+	{:else if data.invalid}
+		<h1 class="mb-2 text-lg font-semibold">Invite not valid</h1>
+		<p class="text-sm text-stone-600">{data.invalid}</p>
 	{:else}
 		<h1 class="mb-1 text-lg font-semibold">Create your account</h1>
 		<p class="mb-4 text-sm text-stone-500">Invited: {data.email}</p>
