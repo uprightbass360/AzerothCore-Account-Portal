@@ -23,6 +23,13 @@ export async function api<T = Record<string, unknown>>(
 	body?: unknown
 ): Promise<ApiResponse<T>> {
 	const headers: Record<string, string> = { 'X-Internal-Key': env.INTERNAL_API_KEY ?? '' };
+	try {
+		// Forward the real visitor's address so backend rate limiting and audit
+		// logs see the client, not this server. Unavailable during prerender.
+		headers['X-Forwarded-For'] = event.getClientAddress();
+	} catch {
+		// no client address in this context; backend falls back to the socket peer
+	}
 	const token = event.cookies.get('session');
 	if (token) headers['Authorization'] = `Bearer ${token}`;
 	const init: RequestInit = { method, headers };

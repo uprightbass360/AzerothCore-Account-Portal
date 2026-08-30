@@ -26,6 +26,12 @@ class TwoFaIn(LoginIn):
 
 
 def _client_ip(request: Request) -> str:
+    # The SvelteKit server forwards the real visitor's address; trusting the
+    # header is safe because the internal-key middleware means only our own
+    # frontend can reach this API at all.
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
     return request.client.host if request.client else "unknown"
 
 

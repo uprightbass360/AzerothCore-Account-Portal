@@ -109,3 +109,15 @@ async def test_logout_requires_bearer(client):
     assert resp.status_code == 401
     resp = await client.post("/api/v1/auth/logout", headers={"Authorization": "Bearer bogus"})
     assert resp.status_code == 401
+
+
+async def test_login_uses_forwarded_client_ip(client, seed_account, portal_db):
+    await seed_account(1, "testuser")
+    resp = await client.post(
+        "/api/v1/auth/login",
+        json={"username": "testuser", "password": "testpass"},
+        headers={"X-Forwarded-For": "203.0.113.7, 10.0.0.2"},
+    )
+    assert resp.status_code == 200
+    log = (await portal_db.execute(select(AuditLog))).scalar_one()
+    assert log.detail == {"ip": "203.0.113.7"}

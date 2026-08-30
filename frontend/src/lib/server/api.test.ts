@@ -16,6 +16,7 @@ function makeEvent(cookie?: string): RequestEvent & { fetchMock: ReturnType<type
 		fetch: fetchMock,
 		fetchMock,
 		url: new URL('https://portal.test/x'),
+		getClientAddress: vi.fn().mockReturnValue('198.51.100.9'),
 		cookies: {
 			get: vi.fn().mockReturnValue(cookie),
 			set: vi.fn(),
@@ -140,5 +141,24 @@ describe('detail normalization', () => {
 		expect((await apiWith({ detail: null })).data.detail).toBeNull();
 		expect((await apiWith({ ok: true })).data.detail).toBeUndefined();
 		expect((await apiWith('not an object', 200)).data).toBe('not an object');
+	});
+});
+
+describe('client address forwarding', () => {
+	it('forwards the visitor address as X-Forwarded-For', async () => {
+		const event = makeEvent();
+		await api(event, 'GET', '/x');
+		const [, init] = event.fetchMock.mock.calls[0];
+		expect(init.headers['X-Forwarded-For']).toBe('198.51.100.9');
+	});
+
+	it('omits the header when no client address is available', async () => {
+		const event = makeEvent();
+		(event.getClientAddress as ReturnType<typeof vi.fn>).mockImplementation(() => {
+			throw new Error('prerendering');
+		});
+		await api(event, 'GET', '/x');
+		const [, init] = event.fetchMock.mock.calls[0];
+		expect(init.headers['X-Forwarded-For']).toBeUndefined();
 	});
 });

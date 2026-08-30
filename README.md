@@ -107,6 +107,26 @@ Once you've registered and logged in as that account, you'll see the admin area 
 issue invites and promote further admins from the UI — you don't need to edit
 `PORTAL_ADMIN_USERNAMES` again after that.
 
+## External access via a reverse proxy
+
+The portal has no TLS of its own — put any reverse proxy you control in front of
+the frontend port (Pangolin, Caddy, nginx, Traefik, ...) and set two variables:
+
+1. `PORTAL_PUBLIC_BASE_URL` — the exact public URL users will hit, e.g.
+   `https://wow.example.com:442`. This one setting drives the CSRF origin check,
+   the `Secure` cookie flag, and the links in invite emails.
+2. `PORTAL_ADDRESS_HEADER=x-forwarded-for` — so login rate limiting and the
+   audit log record real visitor IPs instead of the proxy's. Only set this when
+   a proxy you control fronts the portal and always sets the header; it is
+   spoofable from direct connections. `PORTAL_XFF_DEPTH` (default 1) matches
+   one proxy hop.
+
+Point the proxy at the frontend port (`PORTAL_HTTP_PORT`, default 8080). The
+backend stays unexposed either way. Then `docker compose up -d` to apply.
+
+Before exposing the portal publicly, also replace any test SMTP (e.g. MailHog)
+with a real relay — invite emails must actually reach recipients.
+
 ## Backups
 
 The portal's own data (invites, admin flags, audit log) lives in a single SQLite file on

@@ -36,6 +36,10 @@ services:
       BACKEND_URL: "http://backend:8000"
       INTERNAL_API_KEY: "${PORTAL_INTERNAL_API_KEY}"
       PORT: "3000"
+      # Set PORTAL_ADDRESS_HEADER=x-forwarded-for ONLY when a reverse proxy you
+      # control fronts the portal and sets that header; empty = socket address.
+      ADDRESS_HEADER: "${PORTAL_ADDRESS_HEADER:-}"
+      XFF_DEPTH: "${PORTAL_XFF_DEPTH:-1}"
     ports:
       - "${PORTAL_HTTP_PORT:-8080}:3000"
     depends_on:
