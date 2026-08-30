@@ -18,7 +18,8 @@ type Account = {
 export const load: PageServerLoad = async (event) => {
 	const search = event.url.searchParams.get('search') ?? '';
 	const page = event.url.searchParams.get('page') ?? '1';
-	const qs = new URLSearchParams({ search, page }).toString();
+	const bots = event.url.searchParams.get('bots') === '1';
+	const qs = new URLSearchParams({ search, page, bots: String(bots) }).toString();
 	const { data } = await api<{ items: Account[]; total: number; page: number; pages: number }>(
 		event,
 		'GET',
@@ -29,7 +30,8 @@ export const load: PageServerLoad = async (event) => {
 		total: data.total ?? 0,
 		page: data.page ?? 1,
 		pages: data.pages ?? 1,
-		search
+		search,
+		bots
 	};
 };
 

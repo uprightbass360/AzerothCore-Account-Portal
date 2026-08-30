@@ -187,3 +187,16 @@ async def test_audit_list(client, admin_login):
         "/api/v1/admin/audit", headers=bearer(token), params={"action": "nonexistent.action"}
     )
     assert resp.json()["total"] == 0
+
+
+async def test_accounts_list_hides_bots_by_default(client, admin_login, seed_account):
+    token = await admin_login(90, "boss")
+    await seed_account(1, "RNDBOT1")
+    await seed_account(2, "PLAYERBOT2")
+    await seed_account(3, "REALGUY")
+    resp = await client.get("/api/v1/admin/accounts", headers=bearer(token))
+    names = [i["username"] for i in resp.json()["items"]]
+    assert "RNDBOT1" not in names and "PLAYERBOT2" not in names and "REALGUY" in names
+    resp = await client.get("/api/v1/admin/accounts", headers=bearer(token), params={"bots": "true"})
+    names = [i["username"] for i in resp.json()["items"]]
+    assert "RNDBOT1" in names and "PLAYERBOT2" in names

@@ -113,13 +113,16 @@ async def revoke_invite(
 
 @router.get("/accounts")
 async def list_accounts(
+    request: Request,
     search: str = "",
     page: int = 1,
+    bots: bool = False,
     db: AsyncSession = Depends(get_db),
     reader: AcoreReader = Depends(get_reader),
 ) -> dict:
+    exclude = None if bots else request.app.state.settings.bot_prefix_list
     rows, total = await reader.list_accounts(
-        search=search, offset=(page - 1) * PAGE_SIZE, limit=PAGE_SIZE
+        search=search, offset=(page - 1) * PAGE_SIZE, limit=PAGE_SIZE, exclude_prefixes=exclude
     )
     ids = [r.id for r in rows]
     banned = await reader.banned_ids(ids)

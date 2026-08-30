@@ -102,12 +102,19 @@ class AcoreReader:
         return await self.get_account(username) is not None
 
     async def list_accounts(
-        self, search: str = "", offset: int = 0, limit: int = 25
+        self,
+        search: str = "",
+        offset: int = 0,
+        limit: int = 25,
+        exclude_prefixes: list[str] | None = None,
     ) -> tuple[list[AccountRow], int]:
         base = select(*_COLS)
         count = select(func.count()).select_from(account)
         if search:
             cond = func.upper(account.c.username).like(f"%{search.upper()}%")
+            base, count = base.where(cond), count.where(cond)
+        for prefix in exclude_prefixes or []:
+            cond = func.upper(account.c.username).notlike(f"{prefix.upper()}%")
             base, count = base.where(cond), count.where(cond)
         async with self._engine.connect() as conn:
             total = (await conn.execute(count)).scalar_one()

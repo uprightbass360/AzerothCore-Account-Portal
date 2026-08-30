@@ -6,13 +6,17 @@
 
 <svelte:head><title>Accounts · Admin · Account Portal</title></svelte:head>
 
-<form method="GET" class="mb-4 flex gap-3">
+<form method="GET" class="mb-4 flex items-center gap-3">
 	<input
 		name="search"
 		value={data.search}
 		placeholder="Search username…"
 		class="wow-input w-64 px-3 py-2 text-sm"
 	/>
+	<label class="flex items-center gap-2 text-sm text-parchment/70">
+		<input type="checkbox" name="bots" value="1" checked={data.bots} class="accent-gold" />
+		Show bots
+	</label>
 	<button class="btn-wow px-4 py-2 text-sm">Search</button>
 </form>
 {#if form?.message}<p class="mb-3 text-sm text-red-400">{form.message}</p>{/if}

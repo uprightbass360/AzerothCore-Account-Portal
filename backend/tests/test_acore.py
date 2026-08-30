@@ -88,3 +88,16 @@ async def test_list_accounts_search_case_insensitive(engine, reader):
     await insert_account(engine, 2, "Other")
     rows, total = await reader.list_accounts(search="mixed")
     assert total == 1 and len(rows) == 1 and rows[0].username == "MixedCase"
+
+
+async def test_list_accounts_excludes_prefixes(engine, reader):
+    await insert_account(engine, 1, "ARTIMAGE")
+    await insert_account(engine, 2, "RNDBOT1")
+    await insert_account(engine, 3, "RNDBOT22")
+    await insert_account(engine, 4, "PLAYERBOT5")
+    rows, total = await reader.list_accounts(exclude_prefixes=["RNDBOT", "PLAYERBOT"])
+    assert total == 1 and [r.username for r in rows] == ["ARTIMAGE"]
+    rows, total = await reader.list_accounts(exclude_prefixes=["rndbot"], search="bot")
+    assert [r.username for r in rows] == ["PLAYERBOT5"]
+    rows, total = await reader.list_accounts()
+    assert total == 4

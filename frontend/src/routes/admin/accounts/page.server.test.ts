@@ -33,14 +33,15 @@ describe('load', () => {
 		expect(api).toHaveBeenCalledWith(
 			expect.anything(),
 			'GET',
-			'/api/v1/admin/accounts?search=alp&page=2'
+			'/api/v1/admin/accounts?search=alp&page=2&bots=false'
 		);
 		expect(res).toEqual({
 			accounts: [{ username: 'A' }],
 			total: 1,
 			page: 2,
 			pages: 3,
-			search: 'alp'
+			search: 'alp',
+			bots: false
 		});
 	});
 
@@ -50,9 +51,20 @@ describe('load', () => {
 		expect(api).toHaveBeenCalledWith(
 			expect.anything(),
 			'GET',
-			'/api/v1/admin/accounts?search=&page=1'
+			'/api/v1/admin/accounts?search=&page=1&bots=false'
 		);
-		expect(res).toEqual({ accounts: [], total: 0, page: 1, pages: 1, search: '' });
+		expect(res).toEqual({ accounts: [], total: 0, page: 1, pages: 1, search: '', bots: false });
+	});
+
+	it('enables bots when requested', async () => {
+		vi.mocked(api).mockResolvedValue({ status: 200, data: {} });
+		const res = await load(formEvent({}, '?bots=1'));
+		expect(api).toHaveBeenCalledWith(
+			expect.anything(),
+			'GET',
+			'/api/v1/admin/accounts?search=&page=1&bots=true'
+		);
+		expect(res).toMatchObject({ bots: true });
 	});
 });
 

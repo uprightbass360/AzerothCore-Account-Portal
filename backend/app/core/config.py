@@ -23,10 +23,15 @@ class Settings(BaseSettings):
     session_ttl_days: int = 7
     totp_issuer: str = "AzerothCore"
     admin_usernames: str = ""
+    bot_prefixes: str = "RNDBOT,PLAYERBOT"
 
     @property
     def admin_username_list(self) -> list[str]:
         return [u.strip().upper() for u in self.admin_usernames.split(",") if u.strip()]
+
+    @property
+    def bot_prefix_list(self) -> list[str]:
+        return [p.strip().upper() for p in self.bot_prefixes.split(",") if p.strip()]
 
 
 @lru_cache
