@@ -1,5 +1,6 @@
 services:
   backend:
+    image: "${PORTAL_IMAGE_BACKEND:-uprightbass360/azerothcore-account-portal-backend:latest}"
     build: ./backend
     restart: unless-stopped
     environment:
@@ -27,6 +28,7 @@ services:
       - realmmaster
 
   frontend:
+    image: "${PORTAL_IMAGE_FRONTEND:-uprightbass360/azerothcore-account-portal-frontend:latest}"
     build: ./frontend
     restart: unless-stopped
     environment:

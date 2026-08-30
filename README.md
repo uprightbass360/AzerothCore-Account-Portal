@@ -74,7 +74,15 @@ your SMTP settings, `PORTAL_PUBLIC_BASE_URL` (the URL players will use — this 
 as the frontend's CSRF origin, so get it right), and `PORTAL_INTERNAL_API_KEY` (generate
 one with `openssl rand -hex 32`).
 
-Then build and start both containers:
+Then start both containers. CI publishes prebuilt images to Docker Hub on every
+`main` push (`uprightbass360/azerothcore-account-portal-backend` / `-frontend`,
+tagged `latest` and by commit SHA), so on a server you can pull instead of building:
+
+```bash
+docker compose pull && docker compose up -d
+```
+
+Or build locally from source:
 
 ```bash
 docker compose up -d --build
