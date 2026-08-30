@@ -104,7 +104,7 @@ async def twofa_setup(
     secret = totp.new_secret()
     sess.pending_totp_secret = secret
     await db.commit()
-    uri = totp.provisioning_uri(secret, acct.username, request.app.state.settings.totp_issuer)
+    uri = totp.provisioning_uri(secret, acct.username, request.app.state.settings.server_name)
     return {"secret": secret, "otpauth_uri": uri, "qr_svg": totp.qr_svg(uri)}
 
 

@@ -13,7 +13,23 @@ def test_defaults():
     assert s.soap_url == "http://ac-worldserver:7878/"
     assert s.invite_ttl_days == 7
     assert s.session_ttl_days == 7
-    assert s.totp_issuer == "AzerothCore"
+    assert s.server_name == "AzerothCore"
+
+
+def test_server_name_env(monkeypatch):
+    monkeypatch.setenv("PORTAL_SERVER_NAME", "My Realm")
+    assert make_settings().server_name == "My Realm"
+
+
+def test_server_name_falls_back_to_totp_issuer(monkeypatch):
+    monkeypatch.setenv("PORTAL_TOTP_ISSUER", "Legacy Realm")
+    assert make_settings().server_name == "Legacy Realm"
+
+
+def test_server_name_wins_over_totp_issuer(monkeypatch):
+    monkeypatch.setenv("PORTAL_SERVER_NAME", "New Realm")
+    monkeypatch.setenv("PORTAL_TOTP_ISSUER", "Legacy Realm")
+    assert make_settings().server_name == "New Realm"
 
 
 def test_env_prefix(monkeypatch):

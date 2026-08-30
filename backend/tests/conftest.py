@@ -25,7 +25,7 @@ def settings(tmp_path) -> Settings:
         soap_user="gm",
         soap_pass="pw",
         public_base_url="http://portal.test",
-        totp_issuer="TestRealm",
+        server_name="TestRealm",
     )
 
 

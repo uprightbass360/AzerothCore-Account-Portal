@@ -1,10 +1,13 @@
 from functools import lru_cache
 
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="PORTAL_", env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_prefix="PORTAL_", env_file=".env", extra="ignore", populate_by_name=True
+    )
 
     database_url: str = "sqlite+aiosqlite:///./portal.db"
     acore_auth_url: str = "mysql+asyncmy://portal_ro:change-me@ac-mysql:3306/acore_auth"
@@ -21,7 +24,12 @@ class Settings(BaseSettings):
     public_base_url: str = "http://localhost:3000"
     invite_ttl_days: int = 7
     session_ttl_days: int = 7
-    totp_issuer: str = "AzerothCore"
+    # Realm display name: email subjects/bodies and the TOTP issuer label in
+    # authenticator apps. PORTAL_TOTP_ISSUER is the deprecated pre-rename alias.
+    server_name: str = Field(
+        default="AzerothCore",
+        validation_alias=AliasChoices("PORTAL_SERVER_NAME", "PORTAL_TOTP_ISSUER"),
+    )
     admin_usernames: str = ""
     bot_prefixes: str = "RNDBOT,PLAYERBOT"
 

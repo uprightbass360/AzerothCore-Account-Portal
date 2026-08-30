@@ -22,7 +22,7 @@ export PORTAL_SMTP_FROM="noreply@uxtest.local"
 export PORTAL_INTERNAL_API_KEY="uxtest-key"
 export PORTAL_PUBLIC_BASE_URL="http://localhost:5173"
 export PORTAL_ADMIN_USERNAMES="TESTADMIN"
-export PORTAL_TOTP_ISSUER="UXTest Realm"
+export PORTAL_SERVER_NAME="UXTest Realm"
 export PORTAL_INVITE_TTL_DAYS="7"
 
 echo "== seeding acore stub =="
