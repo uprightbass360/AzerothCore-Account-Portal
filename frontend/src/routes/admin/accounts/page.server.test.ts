@@ -136,3 +136,41 @@ describe('resetPassword action', () => {
 		expect(res).toMatchObject({ status: 502, data: { message: 'Password reset failed' } });
 	});
 });
+
+describe('grantAdmin and revokeAdmin actions', () => {
+	it('grants by username', async () => {
+		vi.mocked(api).mockResolvedValue({ status: 201, data: { username: 'KRORG' } });
+		const res = await actions.grantAdmin(formEvent({ username: 'KRORG' }));
+		expect(res).toEqual({ adminChanged: true });
+		expect(api).toHaveBeenCalledWith(expect.anything(), 'POST', '/api/v1/admin/admins', {
+			username: 'KRORG'
+		});
+	});
+
+	it('revokes by account id and surfaces the last-admin guard', async () => {
+		vi.mocked(api).mockResolvedValue({ status: 200, data: { ok: true } });
+		const res = await actions.revokeAdmin(formEvent({ account_id: '452' }));
+		expect(res).toEqual({ adminChanged: true });
+		expect(api).toHaveBeenCalledWith(expect.anything(), 'DELETE', '/api/v1/admin/admins/452');
+		vi.mocked(api).mockResolvedValue({
+			status: 400,
+			data: { detail: 'Cannot remove the last admin' }
+		});
+		expect(await actions.revokeAdmin(formEvent({ account_id: '451' }))).toMatchObject({
+			status: 400,
+			data: { message: 'Cannot remove the last admin' }
+		});
+	});
+
+	it('surfaces grant failures without detail', async () => {
+		vi.mocked(api).mockResolvedValue({ status: 404, data: {} });
+		expect(await actions.grantAdmin(formEvent({ username: 'GHOST' }))).toMatchObject({
+			status: 404,
+			data: { message: 'Grant failed' }
+		});
+		vi.mocked(api).mockResolvedValue({ status: 502, data: {} });
+		expect(await actions.revokeAdmin(formEvent({ account_id: '9' }))).toMatchObject({
+			data: { message: 'Revoke failed' }
+		});
+	});
+});

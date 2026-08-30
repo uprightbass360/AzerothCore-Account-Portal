@@ -49,6 +49,24 @@ async function act(event: RequestEvent, verb: 'lock' | 'unlock') {
 export const actions: Actions = {
 	lock: (event) => act(event, 'lock'),
 	unlock: (event) => act(event, 'unlock'),
+	grantAdmin: async (event) => {
+		const fd = await event.request.formData();
+		const { status, data } = await api<Detail>(event, 'POST', '/api/v1/admin/admins', {
+			username: String(fd.get('username'))
+		});
+		if (status === 201) return { adminChanged: true };
+		return fail(status, { message: data.detail ?? 'Grant failed' });
+	},
+	revokeAdmin: async (event) => {
+		const fd = await event.request.formData();
+		const { status, data } = await api<Detail>(
+			event,
+			'DELETE',
+			`/api/v1/admin/admins/${encodeURIComponent(String(fd.get('account_id')))}`
+		);
+		if (status === 200) return { adminChanged: true };
+		return fail(status, { message: data.detail ?? 'Revoke failed' });
+	},
 	resetPassword: async (event) => {
 		const fd = await event.request.formData();
 		const username = encodeURIComponent(String(fd.get('username')));

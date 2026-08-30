@@ -17,7 +17,7 @@
 		<input type="checkbox" name="bots" value="1" checked={data.bots} class="accent-gold" />
 		Show bots
 	</label>
-	<button class="btn-wow px-4 py-2 text-sm">Search</button>
+	<button class="btn-wow px-3 py-2 text-sm">Search</button>
 </form>
 {#if form?.message}<p class="mb-3 text-sm text-red-400">{form.message}</p>{/if}
 {#if form?.resetSent}
@@ -30,33 +30,46 @@
 	<table class="w-full text-left text-sm">
 		<thead>
 			<tr class="text-q-poor">
-				<th class="px-4 py-2">Username</th><th class="px-4 py-2">Email</th>
-				<th class="px-4 py-2">Joined</th><th class="px-4 py-2">Last login</th>
-				<th class="px-4 py-2">2FA</th><th class="px-4 py-2">Status</th><th class="px-4 py-2"></th>
+				<th class="px-3 py-2">Username</th><th class="px-3 py-2">Email</th>
+				<th class="px-3 py-2">Joined</th><th class="px-3 py-2">Last login</th>
+				<th class="px-3 py-2">2FA</th><th class="px-3 py-2">Status</th>
+				<th class="px-3 py-2">Admin</th><th class="px-3 py-2"></th>
 			</tr>
 		</thead>
 		<tbody>
 			{#each data.accounts as a (a.id)}
 				<tr class="border-t border-gold/10">
-					<td class="px-4 py-2 font-medium"
-						>{a.username}{#if a.is_admin}<span
-								class="ml-1 border border-gold/40 px-1 text-xs text-questgold">admin</span
-							>{/if}</td
-					>
-					<td class="max-w-56 truncate px-4 py-2" title={a.email ?? a.invited_email ?? ''}
+					<td class="px-3 py-2 font-medium">{a.username}</td>
+					<td class="max-w-48 truncate px-3 py-2" title={a.email ?? a.invited_email ?? ''}
 						>{a.email ?? a.invited_email ?? '—'}</td
 					>
-					<td class="px-4 py-2">{a.joindate ? new Date(a.joindate).toLocaleDateString() : '—'}</td>
-					<td class="px-4 py-2"
+					<td class="px-3 py-2">{a.joindate ? new Date(a.joindate).toLocaleDateString() : '—'}</td>
+					<td class="px-3 py-2"
 						>{a.last_login ? new Date(a.last_login).toLocaleDateString() : '—'}</td
 					>
-					<td class="px-4 py-2 {a.totp_enabled ? 'text-q-uncommon' : 'text-q-poor'}"
+					<td class="px-3 py-2 {a.totp_enabled ? 'text-q-uncommon' : 'text-q-poor'}"
 						>{a.totp_enabled ? 'on' : 'off'}</td
 					>
-					<td class="px-4 py-2 {a.locked ? 'text-dk-red' : 'text-q-uncommon'}"
+					<td class="px-3 py-2 {a.locked ? 'text-dk-red' : 'text-q-uncommon'}"
 						>{a.locked ? 'Locked' : 'Active'}</td
 					>
-					<td class="px-4 py-2 text-right">
+					<td class="px-3 py-2 whitespace-nowrap">
+						{#if a.is_admin}
+							<span class="border border-gold/40 px-1 text-xs text-questgold">admin</span>
+							<form method="POST" action="?/revokeAdmin" use:enhance class="inline">
+								<input type="hidden" name="account_id" value={a.id} />
+								<button class="ml-1 text-xs text-q-poor hover:text-red-400 hover:underline"
+									>remove</button
+								>
+							</form>
+						{:else}
+							<form method="POST" action="?/grantAdmin" use:enhance class="inline">
+								<input type="hidden" name="username" value={a.username} />
+								<button class="text-xs text-q-epic hover:underline">make admin</button>
+							</form>
+						{/if}
+					</td>
+					<td class="px-3 py-2 text-right">
 						<div class="flex flex-col items-end gap-1 whitespace-nowrap">
 							<form method="POST" action="?/resetPassword" use:enhance>
 								<input type="hidden" name="username" value={a.username} />
@@ -74,7 +87,7 @@
 					</td>
 				</tr>
 			{:else}
-				<tr><td class="px-4 py-3 text-q-poor" colspan="7">No accounts found.</td></tr>
+				<tr><td class="px-3 py-3 text-q-poor" colspan="8">No accounts found.</td></tr>
 			{/each}
 		</tbody>
 	</table>

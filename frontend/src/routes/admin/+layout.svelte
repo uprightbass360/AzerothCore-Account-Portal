@@ -5,7 +5,6 @@
 	const tabs = [
 		['/admin/invites', 'Invites'],
 		['/admin/accounts', 'Accounts'],
-		['/admin/admins', 'Admins'],
 		['/admin/audit', 'Audit log']
 	] as const;
 </script>
