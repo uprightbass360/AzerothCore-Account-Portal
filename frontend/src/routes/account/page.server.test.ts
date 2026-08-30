@@ -173,8 +173,7 @@ describe('email action', () => {
 
 	it('surfaces backend failures with the email section tag', async () => {
 		vi.mocked(api).mockResolvedValue({ status: 502, data: {} });
-		let res;
-		res = await actions.email(formEvent(good));
+		const res = await actions.email(formEvent(good));
 		expect(res).toMatchObject({
 			status: 502,
 			data: { message: 'Email change failed', section: 'email' }
