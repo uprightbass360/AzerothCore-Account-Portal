@@ -1,25 +1,36 @@
 # AzerothCore Account Portal
 
-The AzerothCore Account Portal is a self-service web app that sits in front of an existing
-AzerothCore server — built as the companion to the
-[AzerothCore-RealmMaster](https://github.com/uprightbass360/AzerothCore-RealmMaster) stack,
-whose `COMPOSE_OVERRIDE_SOAP_ENABLED=1` flag provides the SOAP API this portal depends on. Players use it to register a game account from an
+The AzerothCore Account Portal is a self-service invitation and account-management web
+app for any existing AzerothCore server. Players use it to register a game account from an
 admin-issued invite link, change their password, and turn two-factor authentication on or
 off — all without shell or database access. Guild officers and server admins get a small
 admin area to issue invites, review accounts, promote other admins, and read an audit log
 of who changed what. The portal never touches the game database directly: every account
 mutation goes through the worldserver's SOAP command interface, and the only direct MySQL
 access is a read-only user against `acore_auth` for looking up accounts. It ships as two
-containers — a FastAPI backend and a SvelteKit frontend — that join your RealmMaster
-stack's Docker network so they can reach `ac-worldserver` and `ac-mysql` by service name.
+containers — a FastAPI backend and a SvelteKit frontend — that join your AzerothCore
+stack's Docker network so they can reach the worldserver and MySQL by service name.
+
+## Screenshots
+
+| Invite registration | Admin — invites |
+| --- | --- |
+| ![Registration page with live username availability check](docs/screenshots/register.png) | ![Admin invites page with a pending invite](docs/screenshots/admin-invites.png) |
+
+| Account self-service | Login |
+| --- | --- |
+| ![Account page: change email, password, 2FA](docs/screenshots/account.png) | ![Login page](docs/screenshots/login.png) |
 
 ## Prerequisites
 
-- A running RealmMaster stack (or any AzerothCore deployment using Docker Compose with
-  `ac-worldserver` and `ac-mysql` containers on a shared Docker network).
-- SOAP enabled on the worldserver: `SOAP_PORT=7878` in the stack's env, with `AC_SOAP_PORT`
-  wired through to the worldserver config — this is already the RealmMaster default, so
-  most deployments need no changes here.
+- Any AzerothCore deployment on Docker Compose, with the worldserver and MySQL containers
+  on a shared Docker network. The defaults assume the common `ac-worldserver` /
+  `ac-mysql` service names; adjust `PORTAL_SOAP_URL` and `PORTAL_ACORE_AUTH_URL` if yours
+  differ. (For example, the
+  [AzerothCore-RealmMaster](https://github.com/uprightbass360/AzerothCore-RealmMaster)
+  stack works out of the box with `COMPOSE_OVERRIDE_SOAP_ENABLED=1` set.)
+- SOAP enabled on the worldserver: `SOAP.Enabled = 1` in the worldserver config, listening
+  on port 7878 (or whatever port you point `PORTAL_SOAP_URL` at).
 - An SMTP relay the portal can send through (invite emails). Any relay you already
   control works — a real provider, an internal relay, or a local `postfix`/`msmtp`
   container.
@@ -69,8 +80,9 @@ accordingly. Do this check before pointing the portal at a stack you care about.
 cp .env.template .env
 ```
 
-Fill in `.env`: `REALMMASTER_NETWORK` (find it with `docker network ls` — it's usually
-`<project>_default` or `<project>_realmmaster`), `PORTAL_ACORE_AUTH_URL` with the
+Fill in `.env`: `ACORE_NETWORK` with the name of the Docker network your
+AzerothCore stack runs on (find it with `docker network ls` — it's usually
+`<project>_default`), `PORTAL_ACORE_AUTH_URL` with the
 `portal_ro` password from step 2 above, `PORTAL_SOAP_USER`/`PORTAL_SOAP_PASS` from step 1,
 your SMTP settings, `PORTAL_PUBLIC_BASE_URL` (the URL players will use — this also doubles
 as the frontend's CSRF origin, so get it right), and `PORTAL_INTERNAL_API_KEY` (generate
@@ -140,7 +152,7 @@ docker run --rm -v <project>_appdata:/data -v $(pwd):/backup alpine cp /data/por
 
 Replace `<project>_appdata` with your actual volume name (`docker volume ls` if unsure —
 by default it's `<compose-project-name>_appdata`). Game accounts themselves are not stored
-by the portal at all; they live in the RealmMaster stack's own `acore_auth` database, so
+by the portal at all; they live in your AzerothCore stack's own `acore_auth` database, so
 back that up through your existing MySQL backup process, not through this one.
 
 ## Development
@@ -177,11 +189,10 @@ handled with server-side sessions issued after password (and optional TOTP) veri
 
 ## Verifying the deployment
 
-The checks below need a live RealmMaster stack and were **not** run as part of this
-change (this environment has no RealmMaster stack to join) — run them after your first
-real deployment.
+The checks below need a live AzerothCore stack — run them after your first real
+deployment.
 
-**Health endpoint against the real stack.** With the portal joined to your RealmMaster
+**Health endpoint against the real stack.** With the portal joined to your stack's
 network and `.env` filled in with real credentials:
 
 ```bash
@@ -203,12 +214,3 @@ Confirm the response is `{"status": "ok", "checks": {"acore_auth": "ok", "soap":
 - Whether `account set email <username> <email> <email>` exists. If it does not, apply the
   fallback noted above: make `SoapClient.set_email` a no-op returning `""` and keep the
   email address portal-side only, and update its tests to match.
-
-This local change verified everything that does not require a live RealmMaster stack:
-both Docker images build cleanly, `docker compose config` resolves against a filled-in
-`.env`, and a smoke boot with the `realmmaster` network pointed at a plain Docker
-bridge network confirmed the backend runs its alembic migration and starts uvicorn, the
-frontend serves the SvelteKit build and redirects `/` to `/login`, and the backend's health
-endpoint responds with the expected shape (reporting `acore_auth`/`soap` as `"error"` and
-overall `"degraded"`, since no real MySQL or worldserver was reachable — this is the
-correct, expected result without a real stack, not a bug).
