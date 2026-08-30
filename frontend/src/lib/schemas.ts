@@ -35,6 +35,13 @@ export const grantAdminSchema = z.object({ username: USERNAME });
 
 export const codeSchema = z.object({ code: TOTP_CODE });
 
+export const resetPasswordSchema = z
+	.object({ new_password: GAME_PASSWORD, confirm: z.string(), code: z.string().optional() })
+	.refine((d) => d.new_password === d.confirm, {
+		message: 'Passwords do not match',
+		path: ['confirm']
+	});
+
 export const emailChangeSchema = z.object({
 	new_email: z.email('Enter a valid email address'),
 	code: z.string().optional()

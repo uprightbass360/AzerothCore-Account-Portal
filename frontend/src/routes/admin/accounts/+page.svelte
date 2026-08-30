@@ -20,6 +20,11 @@
 	<button class="btn-wow px-4 py-2 text-sm">Search</button>
 </form>
 {#if form?.message}<p class="mb-3 text-sm text-red-400">{form.message}</p>{/if}
+{#if form?.resetSent}
+	<p class="mb-3 text-sm text-q-uncommon">
+		Password reset — a new-password link was emailed to {form.resetSent}.
+	</p>
+{/if}
 
 <div class="wow-panel overflow-x-auto">
 	<table class="w-full text-left text-sm">
@@ -50,14 +55,20 @@
 						>{a.locked ? 'Locked' : 'Active'}</td
 					>
 					<td class="px-4 py-2 text-right">
-						{#if a.username !== data.user?.username}
-							<form method="POST" action={a.locked ? '?/unlock' : '?/lock'} use:enhance>
+						<div class="flex items-center justify-end gap-3">
+							<form method="POST" action="?/resetPassword" use:enhance>
 								<input type="hidden" name="username" value={a.username} />
-								<button class="hover:underline {a.locked ? 'text-parchment/70' : 'text-red-400'}">
-									{a.locked ? 'Unlock' : 'Lock'}
-								</button>
+								<button class="text-q-rare hover:underline">Reset password</button>
 							</form>
-						{/if}
+							{#if a.username !== data.user?.username}
+								<form method="POST" action={a.locked ? '?/unlock' : '?/lock'} use:enhance>
+									<input type="hidden" name="username" value={a.username} />
+									<button class="hover:underline {a.locked ? 'text-parchment/70' : 'text-red-400'}">
+										{a.locked ? 'Unlock' : 'Lock'}
+									</button>
+								</form>
+							{/if}
+						</div>
 					</td>
 				</tr>
 			{:else}

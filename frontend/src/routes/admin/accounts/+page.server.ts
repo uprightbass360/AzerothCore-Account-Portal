@@ -48,5 +48,16 @@ async function act(event: RequestEvent, verb: 'lock' | 'unlock') {
 
 export const actions: Actions = {
 	lock: (event) => act(event, 'lock'),
-	unlock: (event) => act(event, 'unlock')
+	unlock: (event) => act(event, 'unlock'),
+	resetPassword: async (event) => {
+		const fd = await event.request.formData();
+		const username = encodeURIComponent(String(fd.get('username')));
+		const { status, data } = await api<{ sent_to?: string } & Detail>(
+			event,
+			'POST',
+			`/api/v1/admin/accounts/${username}/reset-password`
+		);
+		if (status === 200) return { resetSent: data.sent_to };
+		return fail(status, { message: data.detail ?? 'Password reset failed' });
+	}
 };

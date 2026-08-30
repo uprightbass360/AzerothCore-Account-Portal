@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from app.api import admin, auth, email_change, health, register, user
+from app.api import admin, auth, email_change, health, password_reset, register, user
 from app.core.config import Settings, get_settings
 from app.core.ratelimit import RateLimiter
 from app.db.base import make_engine, make_sessionmaker
@@ -65,6 +65,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(auth.router)
     app.include_router(register.router)
     app.include_router(email_change.router)
+    app.include_router(password_reset.router)
     app.include_router(user.router)
     app.include_router(admin.router)
 

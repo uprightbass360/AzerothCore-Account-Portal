@@ -108,3 +108,31 @@ describe('lock and unlock actions', () => {
 		);
 	});
 });
+
+describe('resetPassword action', () => {
+	it('posts to the reset endpoint and reports the target address', async () => {
+		vi.mocked(api).mockResolvedValue({ status: 200, data: { sent_to: 'v@m.example' } });
+		const res = await actions.resetPassword(formEvent({ username: 'VICTIM' }));
+		expect(res).toEqual({ resetSent: 'v@m.example' });
+		expect(api).toHaveBeenCalledWith(
+			expect.anything(),
+			'POST',
+			'/api/v1/admin/accounts/VICTIM/reset-password'
+		);
+	});
+
+	it('surfaces failures with and without detail', async () => {
+		vi.mocked(api).mockResolvedValue({
+			status: 409,
+			data: { detail: 'Account has no email on file — the reset link cannot be delivered' }
+		});
+		let res = await actions.resetPassword(formEvent({ username: 'NOEMAIL' }));
+		expect(res).toMatchObject({
+			status: 409,
+			data: { message: 'Account has no email on file — the reset link cannot be delivered' }
+		});
+		vi.mocked(api).mockResolvedValue({ status: 502, data: {} });
+		res = await actions.resetPassword(formEvent({ username: 'VICTIM' }));
+		expect(res).toMatchObject({ status: 502, data: { message: 'Password reset failed' } });
+	});
+});

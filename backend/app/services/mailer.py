@@ -33,6 +33,30 @@ class Mailer:
         )
         await self._send(msg)
 
+    async def send_password_reset(
+        self, to_email: str, username: str, link: str, expires_hours: int
+    ) -> None:
+        s = self._settings
+        msg = EmailMessage()
+        msg["From"] = s.smtp_from
+        msg["To"] = to_email
+        msg["Subject"] = f"Set a new password for {username} on {s.totp_issuer}"
+        text = (
+            f"An administrator reset the password for your {s.totp_issuer} account {username}.\n"
+            f"Your old password no longer works.\n\n"
+            f"Choose a new password here: {link}\n\n"
+            f"This link expires in {expires_hours} hours."
+        )
+        msg.set_content(text)
+        msg.add_alternative(
+            f"<p>An administrator reset the password for your <b>{s.totp_issuer}</b> account "
+            f"<b>{username}</b>. Your old password no longer works.</p>"
+            f'<p><a href="{link}">Choose a new password</a></p>'
+            f"<p>This link expires in {expires_hours} hours.</p>",
+            subtype="html",
+        )
+        await self._send(msg)
+
     async def _send(self, msg: EmailMessage) -> None:
         s = self._settings
         try:

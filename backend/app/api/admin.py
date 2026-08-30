@@ -1,15 +1,17 @@
 import math
+import secrets
+import string
 from datetime import timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, EmailStr
-from sqlalchemy import func, select, update
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import get_db, get_mailer, get_reader, get_soap, require_admin
 from app.core.security import new_session_token
 from app.db.base import utcnow
-from app.db.models import Admin, AuditLog, Invite, PortalSession
+from app.db.models import Admin, AuditLog, Invite, PasswordReset, PortalSession
 from app.services.acore import AcoreReader
 from app.services.audit import record
 from app.services.mailer import Mailer, MailerError
@@ -18,6 +20,8 @@ from app.services.soap import SoapClient
 router = APIRouter(prefix="/api/v1/admin", tags=["admin"], dependencies=[Depends(require_admin)])
 
 PAGE_SIZE = 25
+RESET_TTL_HOURS = 48
+_PASSWORD_ALPHABET = string.ascii_letters + string.digits
 AUDIT_PAGE_SIZE = 50
 
 
@@ -181,6 +185,56 @@ async def lock_account(
     await record(db, "account.locked", acct.username, actor_account_id=sess.account_id)
     await db.commit()
     return {"ok": True}
+
+
+@router.post("/accounts/{username}/reset-password")
+async def reset_account_password(
+    username: str,
+    request: Request,
+    sess: PortalSession = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+    reader: AcoreReader = Depends(get_reader),
+    soap: SoapClient = Depends(get_soap),
+    mailer: Mailer = Depends(get_mailer),
+) -> dict:
+    acct = await reader.get_account(username)
+    if acct is None:
+        raise HTTPException(status_code=404, detail="Account not found")
+    if not acct.email:
+        raise HTTPException(
+            status_code=409,
+            detail="Account has no email on file — the reset link cannot be delivered",
+        )
+    settings = request.app.state.settings
+    raw, hashed = new_session_token()
+    link = f"{settings.public_base_url}/reset-password/{raw}"
+    try:
+        await mailer.send_password_reset(acct.email, acct.username, link, RESET_TTL_HOURS)
+    except MailerError as exc:
+        raise HTTPException(status_code=502, detail="Failed to send reset email") from exc
+    # kill the current password immediately; the emailed link sets the real one
+    scrambled = "".join(secrets.choice(_PASSWORD_ALPHABET) for _ in range(16))
+    await soap.set_password(acct.username, scrambled)
+    await db.execute(
+        update(PortalSession)
+        .where(PortalSession.account_id == acct.id, PortalSession.revoked_at.is_(None))
+        .values(revoked_at=utcnow())
+    )
+    await db.execute(
+        delete(PasswordReset).where(
+            PasswordReset.account_id == acct.id, PasswordReset.used_at.is_(None)
+        )
+    )
+    db.add(
+        PasswordReset(
+            account_id=acct.id,
+            token_hash=hashed,
+            expires_at=utcnow() + timedelta(hours=RESET_TTL_HOURS),
+        )
+    )
+    await record(db, "password.reset_initiated", acct.username, actor_account_id=sess.account_id)
+    await db.commit()
+    return {"ok": True, "sent_to": acct.email}
 
 
 @router.post("/accounts/{username}/unlock")

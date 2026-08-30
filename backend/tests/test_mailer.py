@@ -77,3 +77,17 @@ async def test_send_email_change(mailer):
     assert "http://portal.test/confirm-email/tok" in msg.get_body(("plain",)).get_content()
     assert "http://portal.test/confirm-email/tok" in msg.get_body(("html",)).get_content()
     assert "24 hours" in msg.get_body(("plain",)).get_content()
+
+
+async def test_send_password_reset(mailer):
+    with patch("app.services.mailer.aiosmtplib.send", new_callable=AsyncMock) as send:
+        await mailer.send_password_reset(
+            "v@m.example", "VICTIM", "http://portal.test/reset-password/tok", 48
+        )
+    msg = send.call_args.args[0]
+    assert msg["To"] == "v@m.example"
+    assert "VICTIM" in msg["Subject"]
+    body = msg.get_body(("plain",)).get_content()
+    assert "http://portal.test/reset-password/tok" in body
+    assert "old password no longer works" in body
+    assert "48 hours" in body
