@@ -179,6 +179,15 @@ body {
 	color: #3fa4ff;
 }
 
+/* Tailwind v4 preflight resets buttons to cursor:default; restore pointer
+   affordance for everything clickable. */
+button:not(:disabled),
+[role='button']:not(:disabled),
+input[type='checkbox']:not(:disabled),
+select:not(:disabled) {
+	cursor: pointer;
+}
+
 :where(a, button, input, select):focus-visible {
 	outline: 2px solid var(--color-gold-bright);
 	outline-offset: 2px;
