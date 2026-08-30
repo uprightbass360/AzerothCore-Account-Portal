@@ -197,6 +197,8 @@ async def test_accounts_list_hides_bots_by_default(client, admin_login, seed_acc
     resp = await client.get("/api/v1/admin/accounts", headers=bearer(token))
     names = [i["username"] for i in resp.json()["items"]]
     assert "RNDBOT1" not in names and "PLAYERBOT2" not in names and "REALGUY" in names
-    resp = await client.get("/api/v1/admin/accounts", headers=bearer(token), params={"bots": "true"})
+    resp = await client.get(
+        "/api/v1/admin/accounts", headers=bearer(token), params={"bots": "true"}
+    )
     names = [i["username"] for i in resp.json()["items"]]
     assert "RNDBOT1" in names and "PLAYERBOT2" in names
