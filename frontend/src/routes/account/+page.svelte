@@ -19,6 +19,40 @@
 			<dt class="text-q-poor">Email</dt>
 			<dd>{user.email ?? '—'}</dd>
 		</dl>
+
+		<h2 class="wow-heading mt-6 mb-4 text-lg">Change email</h2>
+		{#if form?.emailRequested}
+			<p class="mb-2 text-sm text-q-uncommon">
+				Confirmation sent to {form.emailRequested}. The change applies once the link in that email
+				is clicked.
+			</p>
+		{/if}
+		<form method="POST" action="?/email" use:enhance>
+			<label class="mb-1 block text-sm" for="new_email">New email address</label>
+			<input
+				id="new_email"
+				name="new_email"
+				value={form?.values?.new_email ?? ''}
+				class="wow-input w-full px-3 py-2"
+			/>
+			<FieldErrors errors={form?.errors?.new_email} />
+			<label class="mt-3 mb-1 block text-sm" for="email_password">Password</label>
+			<input
+				id="email_password"
+				name="password"
+				type="password"
+				class="wow-input w-full px-3 py-2"
+			/>
+			<FieldErrors errors={form?.errors?.password} />
+			{#if user.totp_enabled}
+				<label class="mt-3 mb-1 block text-sm" for="email_code">Current 2FA code</label>
+				<input id="email_code" name="code" inputmode="numeric" class="wow-input w-32 px-3 py-2" />
+			{/if}
+			{#if form?.message && form?.section === 'email'}
+				<p class="mt-2 text-sm text-red-400">{form.message}</p>
+			{/if}
+			<button class="btn-wow mt-4 px-4 py-2 text-sm">Send confirmation</button>
+		</form>
 	</section>
 
 	<section class="wow-card p-6">

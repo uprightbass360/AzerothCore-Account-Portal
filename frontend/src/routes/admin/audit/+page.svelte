@@ -8,6 +8,8 @@
 		'invite.revoked',
 		'account.created',
 		'password.changed',
+		'email.change_requested',
+		'email.changed',
 		'2fa.enabled',
 		'2fa.disabled',
 		'account.locked',

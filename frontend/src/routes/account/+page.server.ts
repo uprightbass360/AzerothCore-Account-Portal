@@ -1,5 +1,10 @@
 import { fail } from '@sveltejs/kit';
-import { codeSchema, disable2faSchema, passwordChangeSchema } from '$lib/schemas';
+import {
+	codeSchema,
+	disable2faSchema,
+	emailChangeSchema,
+	passwordChangeSchema
+} from '$lib/schemas';
 import { api } from '$lib/server/api';
 import { parseForm } from '$lib/server/forms';
 import type { Actions } from './$types';
@@ -16,6 +21,24 @@ export const actions: Actions = {
 		});
 		if (status === 200) return { passwordChanged: true };
 		return fail(status, { message: data.detail ?? 'Password change failed', section: 'password' });
+	},
+
+	email: async (event) => {
+		const parsed = await parseForm(event.request, emailChangeSchema);
+		if (!parsed.ok) return fail(400, { ...parsed, section: 'email' });
+		const payload: Record<string, string> = {
+			new_email: parsed.data.new_email,
+			password: parsed.data.password
+		};
+		if (parsed.data.code?.trim()) payload.code = parsed.data.code.trim();
+		const { status, data } = await api<{ sent_to?: string } & Detail>(
+			event,
+			'POST',
+			'/api/v1/user/email',
+			payload
+		);
+		if (status === 200) return { emailRequested: data.sent_to };
+		return fail(status, { message: data.detail ?? 'Email change failed', section: 'email' });
 	},
 
 	setup2fa: async (event) => {

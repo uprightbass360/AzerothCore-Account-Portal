@@ -1,19 +1,25 @@
+from datetime import timedelta
+
 from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel
-from sqlalchemy import update
+from pydantic import BaseModel, EmailStr
+from sqlalchemy import delete, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.register import PASSWORD_RE
-from app.core.deps import current_session, get_db, get_reader, get_soap
+from app.core.deps import current_session, get_db, get_mailer, get_reader, get_soap
+from app.core.security import new_session_token
 from app.core.srp6 import verify_password
 from app.db.base import utcnow
-from app.db.models import Admin, PortalSession
+from app.db.models import Admin, EmailChange, PortalSession
 from app.services import totp
 from app.services.acore import AccountRow, AcoreReader
 from app.services.audit import record
+from app.services.mailer import Mailer, MailerError
 from app.services.soap import SoapClient
 
 router = APIRouter(prefix="/api/v1/user", tags=["user"])
+
+EMAIL_CHANGE_TTL_HOURS = 24
 
 
 class PasswordIn(BaseModel):
@@ -28,6 +34,12 @@ class CodeIn(BaseModel):
 class DisableIn(BaseModel):
     password: str
     code: str
+
+
+class EmailChangeIn(BaseModel):
+    new_email: EmailStr
+    password: str
+    code: str | None = None
 
 
 async def _account(sess: PortalSession, reader: AcoreReader) -> AccountRow:
@@ -136,3 +148,45 @@ async def twofa_disable(
     await record(db, "2fa.disabled", acct.username, actor_account_id=acct.id)
     await db.commit()
     return {"ok": True}
+
+
+@router.post("/email")
+async def request_email_change(
+    body: EmailChangeIn,
+    request: Request,
+    sess: PortalSession = Depends(current_session),
+    db: AsyncSession = Depends(get_db),
+    reader: AcoreReader = Depends(get_reader),
+    mailer: Mailer = Depends(get_mailer),
+) -> dict:
+    acct = await _account(sess, reader)
+    if not verify_password(acct.username, body.password, acct.salt, acct.verifier):
+        raise HTTPException(status_code=403, detail="Password is incorrect")
+    if acct.totp_secret:
+        if not body.code:
+            raise HTTPException(status_code=400, detail="2FA code required")
+        if not totp.verify_code(totp.secret_from_db(acct.totp_secret), body.code):
+            raise HTTPException(status_code=400, detail="Invalid code")
+    raw, hashed = new_session_token()
+    settings = request.app.state.settings
+    link = f"{settings.public_base_url}/confirm-email/{raw}"
+    try:
+        await mailer.send_email_change(str(body.new_email), link, EMAIL_CHANGE_TTL_HOURS)
+    except MailerError as exc:
+        raise HTTPException(status_code=502, detail="Failed to send confirmation email") from exc
+    await db.execute(
+        delete(EmailChange).where(
+            EmailChange.account_id == sess.account_id, EmailChange.used_at.is_(None)
+        )
+    )
+    db.add(
+        EmailChange(
+            account_id=sess.account_id,
+            new_email=str(body.new_email),
+            token_hash=hashed,
+            expires_at=utcnow() + timedelta(hours=EMAIL_CHANGE_TTL_HOURS),
+        )
+    )
+    await record(db, "email.change_requested", str(body.new_email), actor_account_id=acct.id)
+    await db.commit()
+    return {"ok": True, "sent_to": str(body.new_email)}

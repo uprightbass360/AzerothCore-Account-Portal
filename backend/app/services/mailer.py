@@ -31,6 +31,10 @@ class Mailer:
             f"<p>This invite expires in {expires_days} days.</p>",
             subtype="html",
         )
+        await self._send(msg)
+
+    async def _send(self, msg: EmailMessage) -> None:
+        s = self._settings
         try:
             username = s.smtp_user or None
             password = (s.smtp_pass or None) if username else None
@@ -43,7 +47,27 @@ class Mailer:
                 start_tls=s.smtp_starttls,
             )
         except (aiosmtplib.errors.SMTPException, OSError) as exc:
-            raise MailerError(f"failed to send invite: {exc}") from exc
+            raise MailerError(f"failed to send mail: {exc}") from exc
+
+    async def send_email_change(self, to_email: str, link: str, expires_hours: int) -> None:
+        s = self._settings
+        msg = EmailMessage()
+        msg["From"] = s.smtp_from
+        msg["To"] = to_email
+        msg["Subject"] = f"Confirm your new email for {s.totp_issuer}"
+        text = (
+            f"A request was made to use this address for a {s.totp_issuer} game account.\n\n"
+            f"Confirm the change here: {link}\n\n"
+            f"This link expires in {expires_hours} hours. If you didn't request this, ignore this email."
+        )
+        msg.set_content(text)
+        msg.add_alternative(
+            f"<p>A request was made to use this address for a <b>{s.totp_issuer}</b> game account.</p>"
+            f'<p><a href="{link}">Confirm the email change</a></p>'
+            f"<p>This link expires in {expires_hours} hours. If you didn't request this, ignore this email.</p>",
+            subtype="html",
+        )
+        await self._send(msg)
 
     async def ping(self) -> bool:
         s = self._settings

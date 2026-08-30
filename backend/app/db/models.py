@@ -52,3 +52,15 @@ class AuditLog(Base):
     action: Mapped[str] = mapped_column(String(32), index=True)
     target: Mapped[str] = mapped_column(String(255), default="")
     detail: Mapped[dict | None] = mapped_column(JSON, default=None)
+
+
+class EmailChange(Base):
+    __tablename__ = "email_changes"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    account_id: Mapped[int] = mapped_column(Integer, index=True)
+    new_email: Mapped[str] = mapped_column(String(255))
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    expires_at: Mapped[datetime] = mapped_column(DateTime)
+    used_at: Mapped[datetime | None] = mapped_column(DateTime, default=None)

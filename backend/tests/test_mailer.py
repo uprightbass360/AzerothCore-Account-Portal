@@ -64,3 +64,16 @@ async def test_ping(mailer):
     with patch("app.services.mailer.aiosmtplib.SMTP") as smtp_cls:
         smtp_cls.return_value.connect = AsyncMock(side_effect=OSError("down"))
         assert await mailer.ping() is False
+
+
+async def test_send_email_change(mailer):
+    with patch("app.services.mailer.aiosmtplib.send", new_callable=AsyncMock) as send:
+        await mailer.send_email_change(
+            "new@addr.example", "http://portal.test/confirm-email/tok", 24
+        )
+    msg = send.call_args.args[0]
+    assert msg["To"] == "new@addr.example"
+    assert "Confirm your new email" in msg["Subject"]
+    assert "http://portal.test/confirm-email/tok" in msg.get_body(("plain",)).get_content()
+    assert "http://portal.test/confirm-email/tok" in msg.get_body(("html",)).get_content()
+    assert "24 hours" in msg.get_body(("plain",)).get_content()
