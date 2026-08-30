@@ -1,7 +1,9 @@
 # AzerothCore Account Portal
 
 The AzerothCore Account Portal is a self-service web app that sits in front of an existing
-AzerothCore/RealmMaster server. Players use it to register a game account from an
+AzerothCore server — built as the companion to the
+[AzerothCore-RealmMaster](https://github.com/uprightbass360/AzerothCore-RealmMaster) stack,
+whose `COMPOSE_OVERRIDE_SOAP_ENABLED=1` flag provides the SOAP API this portal depends on. Players use it to register a game account from an
 admin-issued invite link, change their password, and turn two-factor authentication on or
 off — all without shell or database access. Guild officers and server admins get a small
 admin area to issue invites, review accounts, promote other admins, and read an audit log
