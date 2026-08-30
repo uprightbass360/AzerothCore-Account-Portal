@@ -38,7 +38,6 @@ class DisableIn(BaseModel):
 
 class EmailChangeIn(BaseModel):
     new_email: EmailStr
-    password: str
     code: str | None = None
 
 
@@ -160,8 +159,6 @@ async def request_email_change(
     mailer: Mailer = Depends(get_mailer),
 ) -> dict:
     acct = await _account(sess, reader)
-    if not verify_password(acct.username, body.password, acct.salt, acct.verifier):
-        raise HTTPException(status_code=403, detail="Password is incorrect")
     if acct.totp_secret:
         if not body.code:
             raise HTTPException(status_code=400, detail="2FA code required")

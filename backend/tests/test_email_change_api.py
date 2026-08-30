@@ -20,8 +20,8 @@ def bearer(token):
     return {"Authorization": f"Bearer {token}"}
 
 
-async def request_change(client, token, email="new@addr.example", password="testpass", code=None):
-    payload = {"new_email": email, "password": password}
+async def request_change(client, token, email="new@addr.example", code=None):
+    payload = {"new_email": email}
     if code is not None:
         payload["code"] = code
     return await client.post("/api/v1/user/email", headers=bearer(token), json=payload)
@@ -53,11 +53,9 @@ async def test_request_replaces_pending(client, seed_account, login, portal_db):
     assert [c.new_email for c in changes] == ["second@addr.example"]
 
 
-async def test_request_wrong_password_and_bad_email(client, seed_account, login):
+async def test_request_bad_email(client, seed_account, login):
     await seed_account(1, "testuser")
     token = await login()
-    resp = await request_change(client, token, password="wrongwrong")
-    assert resp.status_code == 403
     resp = await request_change(client, token, email="not-an-email")
     assert resp.status_code == 422
 

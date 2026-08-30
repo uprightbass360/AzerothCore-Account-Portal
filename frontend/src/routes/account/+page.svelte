@@ -36,14 +36,6 @@
 				class="wow-input w-full px-3 py-2"
 			/>
 			<FieldErrors errors={form?.errors?.new_email} />
-			<label class="mt-3 mb-1 block text-sm" for="email_password">Password</label>
-			<input
-				id="email_password"
-				name="password"
-				type="password"
-				class="wow-input w-full px-3 py-2"
-			/>
-			<FieldErrors errors={form?.errors?.password} />
 			{#if user.totp_enabled}
 				<label class="mt-3 mb-1 block text-sm" for="email_code">Current 2FA code</label>
 				<input id="email_code" name="code" inputmode="numeric" class="wow-input w-32 px-3 py-2" />

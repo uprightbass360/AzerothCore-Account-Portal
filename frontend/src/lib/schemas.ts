@@ -37,7 +37,6 @@ export const codeSchema = z.object({ code: TOTP_CODE });
 
 export const emailChangeSchema = z.object({
 	new_email: z.email('Enter a valid email address'),
-	password: z.string().min(1, 'Password is required'),
 	code: z.string().optional()
 });
 

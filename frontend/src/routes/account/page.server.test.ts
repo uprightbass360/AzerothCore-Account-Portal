@@ -142,15 +142,14 @@ describe('2fa actions', () => {
 });
 
 describe('email action', () => {
-	const good = { new_email: 'new@addr.example', password: 'pw123456' };
+	const good = { new_email: 'new@addr.example' };
 
 	it('requests the change and reports the target address', async () => {
 		vi.mocked(api).mockResolvedValue({ status: 200, data: { sent_to: 'new@addr.example' } });
 		const res = await actions.email(formEvent(good));
 		expect(res).toEqual({ emailRequested: 'new@addr.example' });
 		expect(api).toHaveBeenCalledWith(expect.anything(), 'POST', '/api/v1/user/email', {
-			new_email: 'new@addr.example',
-			password: 'pw123456'
+			new_email: 'new@addr.example'
 		});
 	});
 
@@ -159,12 +158,11 @@ describe('email action', () => {
 		await actions.email(formEvent({ ...good, code: ' 123456 ' }));
 		expect(api).toHaveBeenCalledWith(expect.anything(), 'POST', '/api/v1/user/email', {
 			new_email: 'new@addr.example',
-			password: 'pw123456',
 			code: '123456'
 		});
 		await actions.email(formEvent({ ...good, code: '  ' }));
 		const lastPayload = vi.mocked(api).mock.calls.at(-1)?.[3];
-		expect(lastPayload).toEqual({ new_email: 'new@addr.example', password: 'pw123456' });
+		expect(lastPayload).toEqual({ new_email: 'new@addr.example' });
 	});
 
 	it('rejects an invalid email locally with the email section tag', async () => {
@@ -174,14 +172,12 @@ describe('email action', () => {
 	});
 
 	it('surfaces backend failures with the email section tag', async () => {
-		vi.mocked(api).mockResolvedValue({ status: 403, data: { detail: 'Password is incorrect' } });
-		let res = await actions.email(formEvent(good));
-		expect(res).toMatchObject({
-			status: 403,
-			data: { message: 'Password is incorrect', section: 'email' }
-		});
 		vi.mocked(api).mockResolvedValue({ status: 502, data: {} });
+		let res;
 		res = await actions.email(formEvent(good));
-		expect(res).toMatchObject({ status: 502, data: { message: 'Email change failed' } });
+		expect(res).toMatchObject({
+			status: 502,
+			data: { message: 'Email change failed', section: 'email' }
+		});
 	});
 });

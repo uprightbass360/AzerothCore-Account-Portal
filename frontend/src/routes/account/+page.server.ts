@@ -26,10 +26,7 @@ export const actions: Actions = {
 	email: async (event) => {
 		const parsed = await parseForm(event.request, emailChangeSchema);
 		if (!parsed.ok) return fail(400, { ...parsed, section: 'email' });
-		const payload: Record<string, string> = {
-			new_email: parsed.data.new_email,
-			password: parsed.data.password
-		};
+		const payload: Record<string, string> = { new_email: parsed.data.new_email };
 		if (parsed.data.code?.trim()) payload.code = parsed.data.code.trim();
 		const { status, data } = await api<{ sent_to?: string } & Detail>(
 			event,
