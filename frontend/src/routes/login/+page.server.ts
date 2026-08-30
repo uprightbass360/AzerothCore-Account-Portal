@@ -1,4 +1,5 @@
 import { fail, redirect } from '@sveltejs/kit';
+import { env } from '$env/dynamic/private';
 import { loginSchema, totpSchema } from '$lib/schemas';
 import { api, setSessionCookie } from '$lib/server/api';
 import { parseForm } from '$lib/server/forms';
@@ -8,7 +9,7 @@ type LoginResponse = { token?: string; expires_at?: string; status?: string; det
 
 export const load: PageServerLoad = ({ locals }) => {
 	if (locals.user) redirect(303, '/account');
-	return {};
+	return { origin: env.ORIGIN ?? '' };
 };
 
 export const actions: Actions = {

@@ -4,7 +4,7 @@ vi.mock('$lib/server/api', async (orig) => {
 	const mod = (await orig()) as object;
 	return { ...mod, api: vi.fn(), setSessionCookie: vi.fn() };
 });
-vi.mock('$env/dynamic/private', () => ({ env: {} }));
+vi.mock('$env/dynamic/private', () => ({ env: { ORIGIN: 'http://portal.test' } }));
 
 import { api, setSessionCookie } from '$lib/server/api';
 import { actions, load } from './+page.server';
@@ -31,7 +31,15 @@ describe('load', () => {
 		} catch (e) {
 			expect(e).toMatchObject({ status: 303, location: '/account' });
 		}
-		expect(load({ locals: { user: null } } as never)).toEqual({});
+		expect(load({ locals: { user: null } } as never)).toEqual({ origin: 'http://portal.test' });
+	});
+
+	it('falls back to an empty origin when ORIGIN is unset', async () => {
+		const { env } = await import('$env/dynamic/private');
+		const saved = env.ORIGIN;
+		delete (env as Record<string, string | undefined>).ORIGIN;
+		expect(load({ locals: { user: null } } as never)).toEqual({ origin: '' });
+		env.ORIGIN = saved;
 	});
 });
 
