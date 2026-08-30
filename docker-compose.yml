@@ -25,7 +25,7 @@ services:
       - appdata:/data
     networks:
       - portal
-      - realmmaster
+      - acore
 
   frontend:
     image: "${PORTAL_IMAGE_FRONTEND:-uprightbass360/azerothcore-account-portal-frontend:latest}"
@@ -52,6 +52,6 @@ volumes:
 
 networks:
   portal: {}
-  realmmaster:
+  acore:
     external: true
-    name: "${REALMMASTER_NETWORK}"
+    name: "${ACORE_NETWORK}"
