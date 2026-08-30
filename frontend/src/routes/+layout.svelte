@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
 	import './layout.css';
 	import favicon from '$lib/assets/favicon.svg';
@@ -33,7 +34,9 @@
 			</div>
 		</div>
 	</nav>
-	<main class="mx-auto max-w-4xl px-4 py-10">
+	<main
+		class="mx-auto px-4 py-10 {page.url.pathname.startsWith('/admin') ? 'max-w-6xl' : 'max-w-4xl'}"
+	>
 		{@render children()}
 	</main>
 </div>

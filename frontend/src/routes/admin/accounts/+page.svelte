@@ -43,7 +43,9 @@
 								class="ml-1 border border-gold/40 px-1 text-xs text-questgold">admin</span
 							>{/if}</td
 					>
-					<td class="px-4 py-2">{a.email ?? a.invited_email ?? '—'}</td>
+					<td class="max-w-56 truncate px-4 py-2" title={a.email ?? a.invited_email ?? ''}
+						>{a.email ?? a.invited_email ?? '—'}</td
+					>
 					<td class="px-4 py-2">{a.joindate ? new Date(a.joindate).toLocaleDateString() : '—'}</td>
 					<td class="px-4 py-2"
 						>{a.last_login ? new Date(a.last_login).toLocaleDateString() : '—'}</td
@@ -55,7 +57,7 @@
 						>{a.locked ? 'Locked' : 'Active'}</td
 					>
 					<td class="px-4 py-2 text-right">
-						<div class="flex items-center justify-end gap-3">
+						<div class="flex flex-col items-end gap-1 whitespace-nowrap">
 							<form method="POST" action="?/resetPassword" use:enhance>
 								<input type="hidden" name="username" value={a.username} />
 								<button class="text-q-rare hover:underline">Reset password</button>
