@@ -8,26 +8,32 @@
 
 <svelte:head><link rel="icon" href={favicon} /></svelte:head>
 
-<div class="min-h-screen bg-stone-100 text-stone-900">
-	<nav class="border-b border-stone-300 bg-stone-900 text-stone-100">
+<div class="min-h-screen">
+	<nav
+		class="border-b border-gold/30 bg-black/60 shadow-[0_10px_30px_rgba(0,0,0,.6)] backdrop-blur-md"
+	>
 		<div class="mx-auto flex max-w-4xl items-center gap-6 px-4 py-3">
-			<a href={resolve('/')} class="font-semibold tracking-wide">Account Portal</a>
-			<div class="ml-auto flex items-center gap-4 text-sm">
+			<a href={resolve('/')} class="wow-title text-xl">Account Portal</a>
+			<div class="ml-auto flex items-center gap-5 text-sm">
 				{#if data.user}
-					<a href={resolve('/account')} class="hover:underline">{data.user.username}</a>
+					<a href={resolve('/account')} class="text-questgold hover:text-gold-bright"
+						>{data.user.username}</a
+					>
 					{#if data.user.is_admin}
-						<a href={resolve('/admin/invites')} class="hover:underline">Admin</a>
+						<a href={resolve('/admin/invites')} class="text-parchment/80 hover:text-gold-bright"
+							>Admin</a
+						>
 					{/if}
 					<form method="POST" action={resolve('/logout')}>
-						<button class="hover:underline">Log out</button>
+						<button class="text-parchment/60 hover:text-gold-bright">Log out</button>
 					</form>
 				{:else}
-					<a href={resolve('/login')} class="hover:underline">Log in</a>
+					<a href={resolve('/login')} class="text-questgold hover:text-gold-bright">Log in</a>
 				{/if}
 			</div>
 		</div>
 	</nav>
-	<main class="mx-auto max-w-4xl px-4 py-8">
+	<main class="mx-auto max-w-4xl px-4 py-10">
 		{@render children()}
 	</main>
 </div>

@@ -11,16 +11,16 @@
 		name="search"
 		value={data.search}
 		placeholder="Search username…"
-		class="w-64 rounded border border-stone-300 px-3 py-2 text-sm"
+		class="wow-input w-64 px-3 py-2 text-sm"
 	/>
-	<button class="rounded bg-stone-900 px-4 py-2 text-sm text-stone-100">Search</button>
+	<button class="btn-wow px-4 py-2 text-sm">Search</button>
 </form>
-{#if form?.message}<p class="mb-3 text-sm text-red-600">{form.message}</p>{/if}
+{#if form?.message}<p class="mb-3 text-sm text-red-400">{form.message}</p>{/if}
 
-<div class="overflow-x-auto rounded border border-stone-300 bg-white shadow-sm">
+<div class="wow-panel overflow-x-auto">
 	<table class="w-full text-left text-sm">
 		<thead>
-			<tr class="text-stone-500">
+			<tr class="text-q-poor">
 				<th class="px-4 py-2">Username</th><th class="px-4 py-2">Email</th>
 				<th class="px-4 py-2">Joined</th><th class="px-4 py-2">Last login</th>
 				<th class="px-4 py-2">2FA</th><th class="px-4 py-2">Status</th><th class="px-4 py-2"></th>
@@ -28,10 +28,10 @@
 		</thead>
 		<tbody>
 			{#each data.accounts as a (a.id)}
-				<tr class="border-t border-stone-100">
+				<tr class="border-t border-gold/10">
 					<td class="px-4 py-2 font-medium"
-						>{a.username}{#if a.is_admin}<span class="ml-1 rounded bg-stone-200 px-1 text-xs"
-								>admin</span
+						>{a.username}{#if a.is_admin}<span
+								class="ml-1 border border-gold/40 px-1 text-xs text-questgold">admin</span
 							>{/if}</td
 					>
 					<td class="px-4 py-2">{a.email ?? a.invited_email ?? '—'}</td>
@@ -39,13 +39,17 @@
 					<td class="px-4 py-2"
 						>{a.last_login ? new Date(a.last_login).toLocaleDateString() : '—'}</td
 					>
-					<td class="px-4 py-2">{a.totp_enabled ? 'on' : 'off'}</td>
-					<td class="px-4 py-2">{a.locked ? '🔒 locked' : 'active'}</td>
+					<td class="px-4 py-2 {a.totp_enabled ? 'text-q-uncommon' : 'text-q-poor'}"
+						>{a.totp_enabled ? 'on' : 'off'}</td
+					>
+					<td class="px-4 py-2 {a.locked ? 'text-dk-red' : 'text-q-uncommon'}"
+						>{a.locked ? 'Locked' : 'Active'}</td
+					>
 					<td class="px-4 py-2 text-right">
 						{#if a.username !== data.user?.username}
 							<form method="POST" action={a.locked ? '?/unlock' : '?/lock'} use:enhance>
 								<input type="hidden" name="username" value={a.username} />
-								<button class="hover:underline {a.locked ? 'text-stone-700' : 'text-red-700'}">
+								<button class="hover:underline {a.locked ? 'text-parchment/70' : 'text-red-400'}">
 									{a.locked ? 'Unlock' : 'Lock'}
 								</button>
 							</form>
@@ -53,7 +57,7 @@
 					</td>
 				</tr>
 			{:else}
-				<tr><td class="px-4 py-3 text-stone-500" colspan="7">No accounts found.</td></tr>
+				<tr><td class="px-4 py-3 text-q-poor" colspan="7">No accounts found.</td></tr>
 			{/each}
 		</tbody>
 	</table>
@@ -66,8 +70,9 @@
 				href={resolve(
 					`/admin/accounts?${new URLSearchParams({ search: data.search, page: String(p) })}`
 				)}
-				class="rounded px-3 py-1 {p === data.page ? 'bg-stone-900 text-stone-100' : 'bg-white'}"
-				>{p}</a
+				class="border px-3 py-1 {p === data.page
+					? 'border-gold-bright bg-black/60 text-questgold'
+					: 'border-gold/20 bg-black/30 text-parchment/70 hover:text-gold-bright'}">{p}</a
 			>
 		{/each}
 	</div>

@@ -1,1 +1,196 @@
 @import 'tailwindcss';
+@import '@fontsource/cinzel/700.css';
+@import '@fontsource/cinzel/900.css';
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/600.css';
+
+/*
+ * WoW-inspired theme. Frame language adapted from SahtoutCMS (MIT,
+ * https://github.com/blodyiheb/SahtoutCMS): glass-dark double-framed cards
+ * with gold corner brackets. Canonical values from Blizzard interface files:
+ * heading gold #ffd100 (GameFontNormal), item-quality status colors.
+ */
+@theme {
+	/* night ground + panel glass */
+	--color-night: #07090f;
+	--color-panel: #0b0e17;
+	/* antique gold family (SahtoutCMS) */
+	--color-gold-bright: #f2cf5b;
+	--color-gold: #c9a227;
+	--color-gold-corner: #e8c552;
+	--color-gold-deep: #8a6a14;
+	/* canonical text gold (GameFontNormal) */
+	--color-questgold: #ffd100;
+	--color-parchment: #e8d9b0;
+	/* item-quality status language */
+	--color-q-poor: #9d9d9d;
+	--color-q-uncommon: #1eff00;
+	--color-q-rare: #0070dd;
+	--color-q-epic: #a335ee;
+	--color-q-legendary: #ff8000;
+	--color-dk-red: #c41e3a;
+
+	--font-display: 'Cinzel', serif;
+	--font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+	background-color: var(--color-night);
+	background-image:
+		radial-gradient(ellipse 120% 60% at 50% 118%, rgba(255, 122, 26, 0.14), transparent 60%),
+		radial-gradient(ellipse 90% 50% at 50% -10%, rgba(0, 112, 221, 0.07), transparent 65%),
+		linear-gradient(180deg, #0a0d15 0%, #07090f 55%, #0a0a10 100%);
+	background-attachment: fixed;
+	color: var(--color-parchment);
+	font-family: var(--font-sans);
+}
+
+/* ── Frames ──────────────────────────────────────────────────────────── */
+
+/* Glass-dark card: outer gold border, deep shadow, inner hairline frame,
+   gold corner brackets. Square corners by construction (WoW UI has none). */
+.wow-card {
+	position: relative;
+	background: rgba(5, 7, 11, 0.75);
+	backdrop-filter: blur(8px);
+	-webkit-backdrop-filter: blur(8px);
+	border: 1px solid rgba(201, 162, 39, 0.22);
+	box-shadow:
+		0 20px 40px -12px rgba(0, 0, 0, 0.8),
+		inset 0 0 60px rgba(0, 0, 0, 0.25);
+}
+.wow-card::before {
+	content: '';
+	position: absolute;
+	inset: 5px;
+	border: 1px solid rgba(201, 162, 39, 0.14);
+	pointer-events: none;
+}
+.wow-card::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	background:
+		linear-gradient(var(--color-gold-corner), var(--color-gold-corner)) left top / 18px 2px,
+		linear-gradient(var(--color-gold-corner), var(--color-gold-corner)) left top / 2px 18px,
+		linear-gradient(var(--color-gold-corner), var(--color-gold-corner)) right top / 18px 2px,
+		linear-gradient(var(--color-gold-corner), var(--color-gold-corner)) right top / 2px 18px,
+		linear-gradient(var(--color-gold-corner), var(--color-gold-corner)) left bottom / 18px 2px,
+		linear-gradient(var(--color-gold-corner), var(--color-gold-corner)) left bottom / 2px 18px,
+		linear-gradient(var(--color-gold-corner), var(--color-gold-corner)) right bottom / 18px 2px,
+		linear-gradient(var(--color-gold-corner), var(--color-gold-corner)) right bottom / 2px 18px;
+	background-repeat: no-repeat;
+}
+
+/* Quiet sub-panel (tables, inner sections): tooltip-grade, no brackets */
+.wow-panel {
+	background: rgba(5, 7, 11, 0.6);
+	border: 1px solid rgba(201, 162, 39, 0.18);
+	box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.3);
+}
+
+/* ── Type ────────────────────────────────────────────────────────────── */
+
+.wow-title {
+	font-family: var(--font-display);
+	font-weight: 900;
+	background: linear-gradient(
+		180deg,
+		#fff7d6 0%,
+		var(--color-gold-bright) 35%,
+		var(--color-gold) 62%,
+		var(--color-gold-deep) 100%
+	);
+	-webkit-background-clip: text;
+	background-clip: text;
+	color: transparent;
+	filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.9));
+	letter-spacing: 0.02em;
+}
+
+.wow-heading {
+	font-family: var(--font-display);
+	font-weight: 700;
+	color: var(--color-questgold);
+	letter-spacing: 0.04em;
+}
+
+/* ── Controls ────────────────────────────────────────────────────────── */
+
+.wow-input {
+	color-scheme: dark;
+	background: rgba(0, 0, 0, 0.5);
+	border: 2px solid rgba(201, 162, 39, 0.3);
+	color: #fff;
+	transition:
+		border-color 0.3s ease,
+		box-shadow 0.3s ease;
+}
+.wow-input::placeholder {
+	color: #6b7280;
+}
+.wow-input:focus {
+	border-color: var(--color-gold-bright);
+	box-shadow: 0 0 20px rgba(242, 207, 82, 0.15);
+	outline: none;
+}
+
+.btn-wow {
+	font-family: var(--font-display);
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	color: #fff;
+	background: linear-gradient(90deg, var(--color-gold-bright), var(--color-gold));
+	border: 2px solid var(--color-gold-bright);
+	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+	transition:
+		transform 0.3s ease,
+		box-shadow 0.3s ease,
+		filter 0.3s ease;
+}
+.btn-wow:hover {
+	filter: brightness(1.08);
+	transform: scale(1.02);
+	box-shadow: 0 0 30px rgba(242, 207, 82, 0.3);
+}
+
+.btn-wow-danger {
+	font-family: var(--font-display);
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	color: #ffd7dd;
+	background: linear-gradient(180deg, #7e1425, #4c0a16);
+	border: 2px solid rgba(196, 30, 58, 0.6);
+	transition: box-shadow 0.3s ease;
+}
+.btn-wow-danger:hover {
+	box-shadow: 0 0 24px rgba(196, 30, 58, 0.35);
+}
+
+.wow-link {
+	color: var(--color-q-rare);
+	text-decoration: underline;
+	text-underline-offset: 3px;
+}
+.wow-link:hover {
+	color: #3fa4ff;
+}
+
+:where(a, button, input, select):focus-visible {
+	outline: 2px solid var(--color-gold-bright);
+	outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.btn-wow,
+	.btn-wow-danger,
+	.wow-input {
+		transition: none;
+	}
+	.btn-wow:hover {
+		transform: none;
+	}
+}
