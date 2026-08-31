@@ -1,15 +1,9 @@
 # AzerothCore Account Portal
 
-The AzerothCore Account Portal is a self-service invitation and account-management web
+The AzerothCore Account Portal is a dead simple self-service invitation and account-management web
 app for any existing AzerothCore server. Players use it to register a game account from an
 admin-issued invite link, change their password, and turn two-factor authentication on or
-off — all without shell or database access. Guild officers and server admins get a small
-admin area to issue invites, review accounts, promote other admins, and read an audit log
-of who changed what. The portal never touches the game database directly: every account
-mutation goes through the worldserver's SOAP command interface, and the only direct MySQL
-access is a read-only user against `acore_auth` for looking up accounts. It ships as two
-containers — a FastAPI backend and a SvelteKit frontend — that join your AzerothCore
-stack's Docker network so they can reach the worldserver and MySQL by service name.
+off — all without shell or database access. 
 
 ## Screenshots
 
