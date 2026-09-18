@@ -141,6 +141,9 @@ def handle(command: str) -> tuple[str, str | None]:
 class Handler(BaseHTTPRequestHandler):
     def do_POST(self):  # noqa: N802
         body = self.rfile.read(int(self.headers.get("Content-Length", 0)))
+        if b"<!DOCTYPE" in body or b"<!ENTITY" in body:
+            self._send(500, FAULT.format(msg="DTD not allowed"))
+            return
         try:
             root = ET.fromstring(body)
             command = (root.find(".//command").text or "").strip()
