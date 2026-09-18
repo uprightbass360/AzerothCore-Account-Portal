@@ -13,6 +13,11 @@ updates:
         update-types:
           - "minor"
           - "patch"
+    ignore:
+      # TS 7 (native-compiler rewrite) is unsupported by @sveltejs/kit,
+      # svelte-check and typescript-eslint; drop this when they catch up.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "uv"
     directory: "/backend"
