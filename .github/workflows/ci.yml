@@ -73,8 +73,8 @@ jobs:
           context: backend
           push: ${{ github.event_name == 'push' }}
           tags: |
-            ${{ secrets.DOCKERHUB_USER }}/azerothcore-account-portal-backend:latest
-            ${{ secrets.DOCKERHUB_USER }}/azerothcore-account-portal-backend:${{ github.sha }}
+            uprightbass360/azerothcore-account-portal-backend:latest
+            uprightbass360/azerothcore-account-portal-backend:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: Build frontend image (push on main)
@@ -83,7 +83,7 @@ jobs:
           context: frontend
           push: ${{ github.event_name == 'push' }}
           tags: |
-            ${{ secrets.DOCKERHUB_USER }}/azerothcore-account-portal-frontend:latest
-            ${{ secrets.DOCKERHUB_USER }}/azerothcore-account-portal-frontend:${{ github.sha }}
+            uprightbass360/azerothcore-account-portal-frontend:latest
+            uprightbass360/azerothcore-account-portal-frontend:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
