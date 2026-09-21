@@ -48,3 +48,11 @@ def test_admin_username_list_parses_and_uppercases():
 
 def test_get_settings_cached():
     assert get_settings() is get_settings()
+
+
+def test_email_template_dir_defaults_empty(monkeypatch):
+    # `Settings` is already imported at the top of this file.
+    monkeypatch.setenv("PORTAL_EMAIL_TEMPLATE_DIR", "/srv/portal-templates/email")
+    assert Settings(_env_file=None).email_template_dir == "/srv/portal-templates/email"
+    monkeypatch.delenv("PORTAL_EMAIL_TEMPLATE_DIR")
+    assert Settings(_env_file=None).email_template_dir == ""

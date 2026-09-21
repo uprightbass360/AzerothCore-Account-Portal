@@ -1,0 +1,32 @@
+# Content for invite emails. Edit freely: changes apply on the next email sent,
+# no restart needed. See README.md in this folder for the full reference.
+
+# Connection details, shown as a label / value table. Any labels work.
+# Uncomment and fill in for your realm.
+# [realm]
+# Realmlist = "set realmlist logon.example.com"
+# "Client version" = "3.3.5a (12340)"
+
+# Numbered getting-started steps.
+[[steps]]
+text = "Click the button above and pick a username and password."
+
+[[steps]]
+text = "Open your WoW folder, edit Data/enUS/realmlist.wtf, and set it to this realm's address."
+
+[[steps]]
+text = "Launch the game and log in with your new account."
+
+# Modules this realm runs. This list is hand-maintained: the portal cannot ask
+# the worldserver for it, so update it when you add or remove modules.
+# `note` and `url` are optional.
+# [[module]]
+# name = "Solo Craft"
+# note = "Scales dungeons and raids for solo or small-group play"
+# url = "https://github.com/azerothcore/mod-solocraft"
+
+# Community and download links. `note` is optional.
+# [[link]]
+# label = "Discord"
+# url = "https://discord.gg/xxxx"
+# note = "Get help and find groups"

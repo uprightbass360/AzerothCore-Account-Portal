@@ -1,0 +1,5 @@
+A request was made to use this address for a ${server_name} game account.
+
+Confirm the change here: ${link}
+
+This link expires in ${expires_hours} hours. If you didn't request this, ignore this email.

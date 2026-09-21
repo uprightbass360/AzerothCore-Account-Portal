@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     public_base_url: str = "http://localhost:3000"
     invite_ttl_days: int = 7
     session_ttl_days: int = 7
+    # Optional folder searched before the shipped templates/email; per-file override.
+    email_template_dir: str = ""
     # Realm display name: email subjects/bodies and the TOTP issuer label in
     # authenticator apps. PORTAL_TOTP_ISSUER is the deprecated pre-rename alias.
     server_name: str = Field(

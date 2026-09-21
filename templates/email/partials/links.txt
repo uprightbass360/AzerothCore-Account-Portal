@@ -1,0 +1,6 @@
+Links
+${rows}
+<!-- row -->
+  - ${label}: ${url}
+<!-- row:note -->
+  - ${label} (${note}): ${url}
