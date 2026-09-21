@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from app.core.config import Settings
+from app.services.email_templates import TemplateSet
 from app.services.mailer import Mailer, MailerError
 
 
@@ -91,3 +92,19 @@ async def test_send_password_reset(mailer):
     assert "http://portal.test/reset-password/tok" in body
     assert "old password no longer works" in body
     assert "48 hours" in body
+
+
+async def test_mailer_uses_given_templates(tmp_path):
+    override = tmp_path / "o"
+    override.mkdir()
+    (override / "invite.toml").write_text('subject = "Custom ${server_name}"\nbutton_label = "B"\n')
+    settings = Settings(_env_file=None, server_name="RealmX", smtp_from="n@t.co")
+    m = Mailer(settings, TemplateSet((override, TemplateSet.default().dirs[0])))
+    with patch("app.services.mailer.aiosmtplib.send", new_callable=AsyncMock) as send:
+        await m.send_invite("a@b.c", "http://l", 7)
+    assert send.call_args.args[0]["Subject"] == "Custom RealmX"
+
+
+def test_mailer_defaults_to_baked_templates():
+    m = Mailer(Settings(_env_file=None))
+    assert m._templates == TemplateSet.default()

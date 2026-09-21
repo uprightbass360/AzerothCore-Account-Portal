@@ -1,9 +1,11 @@
 import httpx
+import pytest
 import respx
 from sqlalchemy import select
 
 from app.db.models import Admin
 from app.main import create_app
+from app.services.email_templates import TemplateSet
 from tests.test_soap import ok
 
 
@@ -117,3 +119,16 @@ async def test_admin_seeding_survives_acore_outage(settings):
     app = create_app(settings)
     async with app.router.lifespan_context(app):  # must not raise
         pass
+
+
+def test_app_exposes_checked_templates(app):
+    assert app.state.templates == TemplateSet.default()
+    assert app.state.mailer._templates is app.state.templates
+
+
+def test_create_app_refuses_to_start_without_templates(settings, tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        "app.main.TemplateSet.from_settings", classmethod(lambda cls, s: TemplateSet((tmp_path,)))
+    )
+    with pytest.raises(FileNotFoundError, match="base.html"):
+        create_app(settings)
