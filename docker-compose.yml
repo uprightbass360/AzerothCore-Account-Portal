@@ -1,7 +1,9 @@
 services:
   backend:
     image: "${PORTAL_IMAGE_BACKEND:-uprightbass360/azerothcore-account-portal-backend:latest}"
-    build: ./backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     restart: unless-stopped
     environment:
       PORTAL_DATABASE_URL: "sqlite+aiosqlite:////data/portal.db"
@@ -21,8 +23,12 @@ services:
       PORTAL_SESSION_TTL_DAYS: "${PORTAL_SESSION_TTL_DAYS:-7}"
       PORTAL_SERVER_NAME: "${PORTAL_SERVER_NAME:-${PORTAL_TOTP_ISSUER:-AzerothCore}}"
       PORTAL_ADMIN_USERNAMES: "${PORTAL_ADMIN_USERNAMES:-}"
+      # Host ./templates overrides the image's copy file by file; an empty or
+      # missing host folder falls through to the shipped templates.
+      PORTAL_EMAIL_TEMPLATE_DIR: /app/templates-override/email
     volumes:
       - appdata:/data
+      - ./templates:/app/templates-override:ro
     networks:
       - portal
       - acore

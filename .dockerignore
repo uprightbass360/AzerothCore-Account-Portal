@@ -1,0 +1,15 @@
+.git
+.env
+**/__pycache__
+**/.pytest_cache
+**/.ruff_cache
+**/.venv
+**/*.db
+**/.coverage
+backend/tests
+frontend
+tools
+docs
+.github
+.playwright-mcp
+.superpowers
