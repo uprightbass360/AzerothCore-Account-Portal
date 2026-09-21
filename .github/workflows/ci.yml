@@ -73,7 +73,8 @@ jobs:
       - name: Build backend image (push on main)
         uses: docker/build-push-action@v7
         with:
-          context: backend
+          context: .
+          file: backend/Dockerfile
           push: ${{ github.event_name == 'push' }}
           tags: |
             uprightbass360/azerothcore-account-portal-backend:latest
