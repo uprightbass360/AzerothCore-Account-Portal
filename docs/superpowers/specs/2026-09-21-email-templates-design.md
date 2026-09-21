@@ -66,31 +66,54 @@ templates/email/
 │   ├── steps.html    steps.txt      # numbered getting-started block
 │   ├── modules.html  modules.txt    # module name / note / optional link
 │   └── links.html    links.txt      # community + dependency links
-├── invite.html
-├── invite.txt
-├── invite.subject.txt
+├── invite.html               # card body: heading, paragraphs, ${button}, ${blocks}, footer
+├── invite.txt                # plain-text part
+├── invite.toml               # subject = "...", button_label = "..."
 ├── password_reset.html
 ├── password_reset.txt
-├── password_reset.subject.txt
+├── password_reset.toml
 ├── email_change.html
 ├── email_change.txt
-└── email_change.subject.txt
+└── email_change.toml
 ```
 
-Each partial file contains one wrapper plus, where it repeats, a single row
-fragment the loader repeats per entry. `string.Template` has no loops, so
-repetition happens in Python and the file supplies the markup for one item.
-Every block has a `.txt` sibling so the plain-text part is fully file-based
-too; no wording lives in Python. A literal dollar sign in any template file is
-written `$$` (documented in the README).
+`base.html` is chrome only (night background, gold-framed card, realm name
+under the card) with a `${content}` slot; each `<email>.html` is the card body
+and holds every word of that email, including the heading and the expiry
+footer. `<email>.toml` holds the two strings that are not markup: the subject
+and the button label.
+
+Each partial file holds a wrapper followed by one or more **row templates**,
+separated by marker lines. `string.Template` has no loops or conditionals,
+so repetition and optional fields are handled by choosing a row template per
+entry, in Python, while the file supplies all markup and wording:
+
+```html
+<h2 ...>Links</h2>
+<table ...>
+${rows}</table>
+<!-- row -->
+<tr><td><a href="${url}">${label}</a></td></tr>
+<!-- row:note -->
+<tr><td><a href="${url}">${label}</a> — ${note}</td></tr>
+```
+
+The variant name lists the optional fields that are present, in the block's
+declared order: `modules` (optional `note`, `url`) needs `row`, `row:note`,
+`row:url`, `row:note:url`; `links` (optional `note`) needs `row`, `row:note`;
+`realm` and `steps` need only `row`. The same marker syntax is used in `.txt`
+partials. Every block has a `.txt` sibling so the plain-text part is fully
+file-based too; no wording lives in Python. A literal dollar sign in any
+template file is written `$$` (documented in the README).
 
 ### Modules
 
 **`backend/app/services/email_content.py`** (new) owns *data*:
 
 - Reads `content.toml` and `theme.toml` with `tomllib`.
-- Normalizes into frozen dataclasses: `RealmInfo`, `Step`, `Module`, `Link`,
-  `Theme`, bundled as `EmailContentConfig`.
+- Normalizes into frozen dataclasses: `RealmEntry`, `Step`, `Module`, `Link`,
+  bundled as `EmailContentConfig`; the theme is a flat `dict[str, str]` of
+  `${placeholder}` names (`color_night`, `font_body`, ...) to values.
 - Re-reads the files on every send. There is no cache: a directory's mtime
   does not change on in-place edits, so mtime caching would silently miss the
   exact edits the bind mount exists for. The cost is a handful of small file
@@ -113,9 +136,11 @@ written `$$` (documented in the README).
   settings once and passes it; tests pass hand-built ones. When omitted, the
   functions resolve the default search path themselves, so existing callers
   and tests keep working unchanged.
-- `TemplateSet.check()` verifies every required file resolves and is called
-  from `create_app`, so a broken deployment fails at boot with the offending
-  path rather than at the first invite.
+- `TemplateSet.check()` verifies every required file resolves, every
+  `<email>.toml` defines `subject` and `button_label`, and every partial
+  defines all the row variants its block needs. It is called from
+  `create_app`, so a broken deployment fails at boot with the offending path
+  rather than at the first invite.
 
 The split keeps parsing/validation testable without rendering, and rendering
 testable with hand-built config objects.
@@ -157,15 +182,16 @@ create account → how to connect → what's special here → where to find us*.
 ### content.toml
 
 ```toml
-[realm]
-realmlist = "set realmlist logon.example.com"
-client_version = "3.3.5a (12340)"
+# Connection details: any label → value pairs. Shipped commented out.
+# [realm]
+# Realmlist = "set realmlist logon.example.com"
+# "Client version" = "3.3.5a (12340)"
 
 [[steps]]
 text = "Click the button above and pick a username and password."
 
 [[steps]]
-text = "Open your WoW folder → Data/enUS/realmlist.wtf and paste the realmlist line."
+text = "Open your WoW folder, edit Data/enUS/realmlist.wtf, and set it to this realm's address."
 
 [[steps]]
 text = "Launch the game and log in with your new account."
@@ -184,15 +210,18 @@ text = "Launch the game and log in with your new account."
 
 Field rules:
 
-- `[realm]` — both keys optional; the block renders if either is set.
+- `[realm]` — a free-form table of label → value strings, rendered in file
+  order. Labels are admin content, so admins can add rows (`Expansion`,
+  `Discord`) without a code change. Empty or absent → block omitted.
 - `[[steps]]` — `text` required.
 - `[[module]]` — `name` required; `note` and `url` optional. With a `url` the
   name renders as a link, otherwise as plain text.
 - `[[link]]` — `label` and `url` required; `note` optional.
 
-Ships with `[realm]` and `[[steps]]` populated with working examples, and
-`[[module]]` / `[[link]]` commented out, so a fresh install sends something
-sensible rather than placeholder content.
+Ships with `[[steps]]` populated (they are generic and true for any realm)
+and `[realm]`, `[[module]]`, `[[link]]` commented out with examples. A fresh
+install therefore sends a correct, if plain, invite; it never mails a
+placeholder realmlist to a real player.
 
 ### theme.toml
 
