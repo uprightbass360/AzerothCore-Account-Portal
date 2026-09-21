@@ -72,6 +72,12 @@ def test_meta_requires_both_keys(baked):
         TemplateSet((baked,)).meta("invite")
 
 
+def test_meta_requires_string_values(baked):
+    (baked / "invite.toml").write_text('subject = 5\nbutton_label = "x"\n')
+    with pytest.raises(ValueError, match="invite.toml"):
+        TemplateSet((baked,)).check()
+
+
 def test_split_partial():
     wrapper, rows = _split_partial("W\n${rows}\n<!-- row -->\nA\n<!-- row:note -->\nB\n")
     assert wrapper == "W\n${rows}\n"
@@ -99,6 +105,14 @@ def test_check_reports_missing_row_variant(baked):
 def test_check_reports_bad_meta(baked):
     (baked / "email_change.toml").write_text("[[[")
     with pytest.raises(ValueError, match="email_change.toml"):
+        TemplateSet((baked,)).check()
+
+
+def test_check_reports_wrapper_missing_rows_placeholder(baked):
+    p = baked / "partials" / "links.html"
+    text = p.read_text()
+    p.write_text(text.replace("${rows}", ""))
+    with pytest.raises(ValueError, match=r"links\.html.*\$\{rows\}"):
         TemplateSet((baked,)).check()
 
 
