@@ -1,0 +1,136 @@
+"""Admin-editable email content and theme.
+
+content.toml supplies the optional blocks of the invite email (realm details,
+getting-started steps, modules, links); theme.toml supplies the colors and
+fonts every email uses. Both are edited on the host and re-read on every send,
+so they must never raise: any problem is logged and the affected part falls
+back to its default. A typo here must not stop an invite going out.
+"""
+
+import logging
+import tomllib
+from dataclasses import dataclass
+from pathlib import Path
+
+logger = logging.getLogger("portal.email")
+
+
+@dataclass(frozen=True)
+class RealmEntry:
+    label: str
+    value: str
+
+
+@dataclass(frozen=True)
+class Step:
+    text: str
+
+
+@dataclass(frozen=True)
+class Module:
+    name: str
+    note: str = ""
+    url: str = ""
+
+
+@dataclass(frozen=True)
+class Link:
+    label: str
+    url: str
+    note: str = ""
+
+
+@dataclass(frozen=True)
+class EmailContentConfig:
+    realm: tuple[RealmEntry, ...] = ()
+    steps: tuple[Step, ...] = ()
+    modules: tuple[Module, ...] = ()
+    links: tuple[Link, ...] = ()
+
+
+# Mirrors frontend/src/routes/layout.css; tests/test_email_templates.py checks the
+# six shared colors stay in sync. Georgia stands in for Cinzel (no webfonts in mail).
+DEFAULT_THEME: dict[str, str] = {
+    "color_night": "#07090f",
+    "color_panel": "#0b0e17",
+    "color_gold_deep": "#8a6a14",
+    "color_gold_corner": "#e8c552",
+    "color_questgold": "#ffd100",
+    "color_parchment": "#e8d9b0",
+    "color_muted": "#8b8574",
+    "color_faint": "#55503f",
+    "color_button_text": "#1a1405",
+    "font_display": "Georgia,'Times New Roman',serif",
+    "font_body": "Helvetica,Arial,sans-serif",
+}
+
+
+def _read_toml(path: Path | None, label: str) -> dict:
+    if path is None:
+        return {}
+    try:
+        with path.open("rb") as f:
+            return tomllib.load(f)
+    except (OSError, tomllib.TOMLDecodeError) as exc:
+        logger.warning("%s unreadable, using defaults: %s", label, exc)
+        return {}
+
+
+def _str(entry: dict, key: str) -> str:
+    value = entry.get(key, "")
+    return value if isinstance(value, str) else ""
+
+
+def _entries(raw: dict, key: str, required: tuple[str, ...]) -> list[dict]:
+    items = raw.get(key, [])
+    if not isinstance(items, list):
+        logger.warning(
+            "content.toml: [[%s]] must be an array of tables, ignoring",
+            key,
+        )
+        return []
+    kept = []
+    for entry in items:
+        if not isinstance(entry, dict) or any(not _str(entry, k) for k in required):
+            logger.warning(
+                "content.toml: skipping [[%s]] entry missing %s",
+                key,
+                "/".join(required),
+            )
+            continue
+        kept.append(entry)
+    return kept
+
+
+def load_content(path: Path | None) -> EmailContentConfig:
+    raw = _read_toml(path, "content.toml")
+    realm_raw = raw.get("realm", {})
+    if not isinstance(realm_raw, dict):
+        logger.warning("content.toml: [realm] must be a table, ignoring")
+        realm_raw = {}
+    return EmailContentConfig(
+        realm=tuple(RealmEntry(k, v) for k, v in realm_raw.items() if isinstance(v, str) and v),
+        steps=tuple(Step(_str(e, "text")) for e in _entries(raw, "steps", ("text",))),
+        modules=tuple(
+            Module(_str(e, "name"), _str(e, "note"), _str(e, "url"))
+            for e in _entries(raw, "module", ("name",))
+        ),
+        links=tuple(
+            Link(_str(e, "label"), _str(e, "url"), _str(e, "note"))
+            for e in _entries(raw, "link", ("label", "url"))
+        ),
+    )
+
+
+def load_theme(path: Path | None) -> dict[str, str]:
+    raw = _read_toml(path, "theme.toml")
+    theme = dict(DEFAULT_THEME)
+    for section in ("color", "font"):
+        values = raw.get(section, {})
+        if not isinstance(values, dict):
+            continue
+        for key, value in values.items():
+            name = f"{section}_{key}"
+            if name in theme and isinstance(value, str):
+                theme[name] = value
+    return theme
