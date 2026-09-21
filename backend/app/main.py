@@ -11,6 +11,7 @@ from app.core.ratelimit import RateLimiter
 from app.db.base import make_engine, make_sessionmaker
 from app.db.models import Admin
 from app.services.acore import AcoreReader
+from app.services.email_templates import TemplateSet
 from app.services.mailer import Mailer
 from app.services.soap import SoapClient, SoapError
 
@@ -58,7 +59,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.acore_engine = make_engine(settings.acore_auth_url)
     app.state.reader = AcoreReader(app.state.acore_engine)
     app.state.soap = SoapClient(settings.soap_url, settings.soap_user, settings.soap_pass)
-    app.state.mailer = Mailer(settings)
+    # Fail at boot, not at the first invite, if the image or override dir is broken.
+    app.state.templates = TemplateSet.from_settings(settings)
+    app.state.templates.check()
+    app.state.mailer = Mailer(settings, app.state.templates)
     app.state.login_limiter = RateLimiter(rate=0.2, capacity=5)
 
     app.include_router(health.router)
