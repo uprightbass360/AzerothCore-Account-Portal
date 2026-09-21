@@ -22,7 +22,7 @@ and an optional list of community links.
 - Invite emails carry realm details, setup steps, module list, and links —
   each optional, each omitted cleanly when unconfigured.
 - Admins edit content on the host and see the change on the next send, with no
-  container restart.
+  container restart. Files are re-read per send; there is no cache to invalidate.
 - No new Python dependency.
 
 ### Non-goals
@@ -60,12 +60,12 @@ templates/email/
 ├── content.toml              # realm details, steps, modules, links
 ├── theme.toml                # colors + fonts, mirrored from layout.css
 ├── base.html                 # shared chrome: body, table, card, footer
-├── partials/
+├── partials/                 # each block has an .html and a .txt sibling
 │   ├── button.html
-│   ├── realm.html            # realmlist + client version
-│   ├── steps.html            # numbered getting-started block
-│   ├── modules.html          # module name / note / optional link
-│   └── links.html            # community + dependency links
+│   ├── realm.html    realm.txt      # realmlist + client version
+│   ├── steps.html    steps.txt      # numbered getting-started block
+│   ├── modules.html  modules.txt    # module name / note / optional link
+│   └── links.html    links.txt      # community + dependency links
 ├── invite.html
 ├── invite.txt
 ├── invite.subject.txt
@@ -80,6 +80,9 @@ templates/email/
 Each partial file contains one wrapper plus, where it repeats, a single row
 fragment the loader repeats per entry. `string.Template` has no loops, so
 repetition happens in Python and the file supplies the markup for one item.
+Every block has a `.txt` sibling so the plain-text part is fully file-based
+too; no wording lives in Python. A literal dollar sign in any template file is
+written `$$` (documented in the README).
 
 ### Modules
 
@@ -88,21 +91,31 @@ repetition happens in Python and the file supplies the markup for one item.
 - Reads `content.toml` and `theme.toml` with `tomllib`.
 - Normalizes into frozen dataclasses: `RealmInfo`, `Step`, `Module`, `Link`,
   `Theme`, bundled as `EmailContentConfig`.
-- Caches by directory mtime so a bind-mounted edit applies on the next send
-  without a restart, and without re-parsing on every send.
+- Re-reads the files on every send. There is no cache: a directory's mtime
+  does not change on in-place edits, so mtime caching would silently miss the
+  exact edits the bind mount exists for. The cost is a handful of small file
+  reads per invite, which is negligible at invite volume.
 - Degrades rather than fails: unreadable or malformed TOML logs a warning and
   falls back to built-in defaults; an individual entry missing its required
   field is skipped with a warning.
 
 **`backend/app/services/email_templates.py`** (rewritten) owns *rendering*:
 
+- Resolves each template file through a **search path** — override dir first,
+  baked dir second — so an admin can override a single file (typically just
+  `content.toml`) without copying the rest.
 - Loads template files, escapes all interpolated values, renders optional
   partials, substitutes theme tokens, and returns the existing
   `EmailContent(subject, text, html)`.
 - Public functions `invite()`, `password_reset()`, `email_change()` keep their
-  current positional signatures. New data arrives from
-  `email_content.load()`, not from new required arguments, so `Mailer` and
-  `backend/app/api/admin.py` need no behavior change.
+  current positional signatures and gain one optional keyword argument,
+  `templates: TemplateSet | None`. `Mailer` builds the `TemplateSet` from
+  settings once and passes it; tests pass hand-built ones. When omitted, the
+  functions resolve the default search path themselves, so existing callers
+  and tests keep working unchanged.
+- `TemplateSet.check()` verifies every required file resolves and is called
+  from `create_app`, so a broken deployment fails at boot with the offending
+  path rather than at the first invite.
 
 The split keeps parsing/validation testable without rendering, and rendering
 testable with hand-built config objects.
@@ -110,10 +123,13 @@ testable with hand-built config objects.
 ### Data flow
 
 ```
+override dir ─┐ (per-file, first match wins)
+baked dir   ──┴→ TemplateSet.resolve(name) ─→ file path
+
 content.toml ─┐
-theme.toml  ──┤→ email_content.load(dir) → EmailContentConfig (mtime-cached)
-              │                                      │
-*.html/.txt ──┴→ email_templates.invite(...) ────────┘
+theme.toml  ──┤→ email_content.load(templates) → EmailContentConfig (per send)
+              │                                         │
+*.html/.txt ──┴→ email_templates.invite(..., templates) ┘
                           │
                           └→ EmailContent(subject, text, html) → Mailer → SMTP
 ```
@@ -207,13 +223,19 @@ live. A test asserts the shared values still match
 One new setting in `backend/app/core/config.py`:
 
 ```python
-email_template_dir: str = "templates/email"
+email_template_dir: str = ""   # PORTAL_EMAIL_TEMPLATE_DIR — optional override dir
 ```
 
-(`PORTAL_EMAIL_TEMPLATE_DIR`.) Resolved relative to the app root when not
-absolute, so tests and local dev find it without Docker. Realm details and
-links live in `content.toml`, not in env vars — a deliberate choice to keep
-email content in one editable place rather than split across two.
+The **baked dir** is always searched and is located relative to the code, not
+to the setting: the first existing candidate of `<cwd>/templates/email` (the
+Docker layout, `WORKDIR /app`) and `<repo>/templates/email` (found from the
+package path, for local dev and tests). The **override dir** is searched first
+when the setting is non-empty. This keeps the baked copy reachable no matter
+what the host mounts, which is what makes the bind mount safe (see Deployment).
+
+Realm details and links live in `content.toml`, not in env vars — a
+deliberate choice to keep email content in one editable place rather than
+split across two.
 
 ### Deployment
 
@@ -225,50 +247,91 @@ backend:
   build:
     context: .
     dockerfile: backend/Dockerfile
+  environment:
+    PORTAL_EMAIL_TEMPLATE_DIR: /app/templates-override/email
   volumes:
     - appdata:/data
-    - ./templates:/app/templates:ro
+    - ./templates:/app/templates-override:ro
 ```
 
 `backend/Dockerfile` COPY paths gain a `backend/` prefix, and a
-`COPY templates ./templates` line bakes a working default into the image. The
-read-only bind mount then lets admins override it on the host and edit live;
-the mtime cache means the next send picks the change up.
+`COPY templates ./templates` line bakes a working default into the image at
+`/app/templates`.
 
-`.env.template` and `README.md` document the folder, the `[[module]]`
-maintenance caveat, and `PORTAL_EMAIL_TEMPLATE_DIR`.
+**The host folder mounts to a separate override path, never over the baked
+copy.** A bind mount of a non-existent host path makes Docker create an empty
+directory and mount it, so mounting onto `/app/templates` would hide the baked
+templates for anyone deploying from the prebuilt image with only
+`docker-compose.yml` and `.env` — exactly the deployment `PORTAL_IMAGE_BACKEND`
+exists for. With the override path, an empty or missing `./templates` simply
+falls through to the baked copy, and a populated one wins file by file.
+
+Moving the build context has two side effects the change must carry:
+
+- **Root `.dockerignore`.** `backend/.dockerignore` stops applying when the
+  context is `.`; without a root one the build would upload
+  `frontend/node_modules`, `backend/.venv`, `.git`, and `frontend/build` on
+  every build. The root file excludes those plus the current `backend/`
+  entries, re-expressed as root-relative paths.
+- **CI.** `.github/workflows/ci.yml` builds the backend image with
+  `context: backend`; it becomes `context: .` with
+  `file: backend/Dockerfile`. The frontend job is unchanged.
+
+`.env.template` and `README.md` document the folder, the override cascade,
+the `[[module]]` maintenance caveat, `$$` for literal dollar signs, and
+`PORTAL_EMAIL_TEMPLATE_DIR`.
 
 ## Error handling
 
+Two classes of failure, handled differently:
+
+**Template files** (`*.html`, `*.txt`, `partials/*`) are part of the
+deployment. The baked copy is always in the image, so one being unresolvable
+means the image or the search path is broken. That is caught at boot:
+`TemplateSet.check()` runs in `create_app` and raises with the missing path.
+There are no Python fallback strings — they would be a second copy of every
+template, and they would rot.
+
+**Content files** (`content.toml`, `theme.toml`) are admin-edited and may be
+wrong at any moment. They degrade:
+
 | Condition | Behavior |
 |-----------|----------|
-| Template dir missing | Log error once; render from built-in fallback strings. Email still sends. |
-| A template file missing | Log error; fall back to the built-in string for that email. |
-| `content.toml` malformed | Log warning; use built-in defaults for all content blocks. |
-| `theme.toml` malformed | Log warning; use built-in default theme. |
+| `content.toml` missing or malformed | Log warning; use built-in defaults for all content blocks. |
+| `theme.toml` missing or malformed | Log warning; use built-in default theme. |
 | Entry missing a required field | Skip that entry with a warning; render the rest. |
 | Unknown `${placeholder}` in a file | `Template.safe_substitute` leaves it literal; a test asserts none remain in shipped templates. |
 
 The governing rule: **a content error must never block an invite from being
-sent.** A player locked out by a typo in a TOML file is a worse failure than
-an email missing its links section.
+sent, and a missing template must never reach a send.** A player locked out
+by a typo in a TOML file is a worse failure than an email missing its links
+section; a template missing from the image is a failure that belongs on the
+operator's screen at startup, not in a player's inbox.
 
 ## Testing
 
 Extending `backend/tests/test_email_templates.py`, plus a new
 `backend/tests/test_email_content.py`:
 
+**Template resolution**
+- A file present in the override dir wins; one absent there falls through to
+  the baked dir; an empty override dir resolves everything from baked.
+- `TemplateSet.check()` raises naming the path when a required file is
+  missing from both dirs.
+- An in-place edit to `content.toml` is reflected on the next render with no
+  restart or cache step.
+
 **Content loading**
 - Valid `content.toml` parses into the expected dataclasses.
-- Malformed TOML falls back to defaults and logs, without raising.
+- Missing or malformed TOML falls back to defaults and logs, without raising.
 - Entry missing a required field is skipped; siblings still render.
-- mtime cache returns a fresh parse after a file is touched.
 
 **Rendering**
-- All three emails render with no template dir present (fallback path).
+- All three emails render from the baked dir with no override configured.
 - Each optional block appears when configured and vanishes when not — with no
   empty heading left behind.
 - Module with `url` renders a link; module without renders plain text.
+- Text and HTML parts of the invite both carry every configured block.
 - Every existing assertion in `test_email_templates.py` still passes; the
   current tests are the regression net for the rewrite.
 
@@ -287,8 +350,9 @@ Extending `backend/tests/test_email_templates.py`, plus a new
 ## Risks
 
 - **Build context change** is the one structural ripple; it touches the
-  Dockerfile and both compose files. Verified by building the image and
-  confirming the CI workflow still passes.
+  Dockerfile, `docker-compose.yml`, the CI workflow, and adds a root
+  `.dockerignore`. Verified by building the image locally and by the CI
+  docker job.
 - **Hand-maintained module list** will drift from the running server. Mitigated
   by documenting it plainly in `templates/email/README.md`; accepted because
   the alternative (SOAP scraping) is build-dependent and unreliable.
