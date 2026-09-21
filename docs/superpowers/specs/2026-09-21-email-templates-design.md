@@ -1,7 +1,7 @@
 # Email Templates — File-Based, Themed, Content-Rich
 
 **Date:** 2026-09-21
-**Status:** Approved design, pre-implementation
+**Status:** Implemented (branch feat/email-templates-folder)
 **Supersedes:** the inline-Python email builders in
 `backend/app/services/email_templates.py`
 
