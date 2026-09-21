@@ -217,6 +217,8 @@ Field rules:
 - `[[module]]` — `name` required; `note` and `url` optional. With a `url` the
   name renders as a link, otherwise as plain text.
 - `[[link]]` — `label` and `url` required; `note` optional.
+- `url` values (in `[[module]]` and `[[link]]`) must start with `http://`,
+  `https://`, or `mailto:`; any other scheme is rejected with a warning.
 
 Ships with `[[steps]]` populated (they are generic and true for any realm)
 and `[realm]`, `[[module]]`, `[[link]]` commented out with examples. A fresh
@@ -319,7 +321,10 @@ deployment. The baked copy is always in the image, so one being unresolvable
 means the image or the search path is broken. That is caught at boot:
 `TemplateSet.check()` runs in `create_app` and raises with the missing path.
 There are no Python fallback strings — they would be a second copy of every
-template, and they would rot.
+template, and they would rot. `<email>.toml` is part of this class too:
+`check()` (via `meta()`) requires `subject` and `button_label` to be present
+**and strings**; a non-string value (e.g. a bare `subject = 5`) fails at boot
+with the same `ValueError` as a missing key, not at send time.
 
 **Content files** (`content.toml`, `theme.toml`) are admin-edited and may be
 wrong at any moment. They degrade:
