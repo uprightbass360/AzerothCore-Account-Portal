@@ -115,6 +115,30 @@ Once you've registered and logged in as that account, you'll see the admin area 
 issue invites and promote further admins from the UI — you don't need to edit
 `PORTAL_ADMIN_USERNAMES` again after that.
 
+## Customising emails
+
+Invite, password-reset, and email-change emails are built from the files in
+`templates/email/`. The most useful file is `templates/email/content.toml`,
+where you add your realmlist and client version, the modules your realm runs,
+and links such as Discord or a client download. Each of those blocks appears
+in invite emails only when it has entries.
+
+Edit the files on the host; the backend re-reads them on every send, so
+changes apply to the next email with no restart. Wording lives in
+`<email>.html` / `.txt` / `.toml`, colors and fonts in `theme.toml`, and the
+card frame in `base.html`. `templates/email/README.md` lists every
+placeholder.
+
+The image ships its own copy of the folder; `docker-compose.yml` mounts
+`./templates` as a per-file override, so a fresh checkout works unchanged and
+you only need to keep the files you actually edit. A malformed `content.toml`
+or `theme.toml` falls back to defaults and is logged; a missing or malformed
+template file stops the backend at startup with the path in the error.
+
+The `[[module]]` list is hand-maintained — the portal cannot ask the
+worldserver which modules are loaded — so update it when you add or remove a
+module.
+
 ## External access via a reverse proxy
 
 The portal has no TLS of its own — put any reverse proxy you control in front of
