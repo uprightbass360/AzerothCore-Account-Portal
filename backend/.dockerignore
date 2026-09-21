@@ -1,5 +1,0 @@
-__pycache__
-*.db
-.coverage
-tests
-.env
