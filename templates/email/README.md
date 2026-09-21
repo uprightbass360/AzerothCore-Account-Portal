@@ -37,11 +37,18 @@ for the portal to ask the worldserver which modules are loaded, so this list
 describes what you tell it, not what is running. Update it when you add or
 remove a module.
 
+`url` values in `[[module]]` and `[[link]]` entries must start with
+`http://`, `https://`, or `mailto:`. Any other scheme is rejected and logged
+as a warning: a `[[module]]` with a rejected `url` still renders (unlinked),
+a `[[link]]` with a rejected `url` is dropped entirely.
+
 ## Placeholders
 
-Files use `${name}` placeholders. A literal dollar sign is written `$$`.
-Unknown placeholders are left as-is. Everything inserted into `.html` files is
-HTML-escaped; `.txt` files receive raw text.
+Files use `${name}` placeholders. In `.html`, `.txt`, and `<email>.toml`
+files, a literal dollar sign is written `$$`. Values in `content.toml` are
+inserted as-is — write dollar signs normally there. Unknown placeholders are
+left as-is. Everything inserted into `.html` files is HTML-escaped; `.txt`
+files receive raw text.
 
 | Placeholder | Available in |
 |---|---|
