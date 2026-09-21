@@ -181,6 +181,15 @@ def test_block_content_is_escaped_in_html_only(override, templates):
     assert "A <b>: x & y" in c.text and "<M> (http://m/?a=1&b=2)" in c.text
 
 
+def test_module_with_rejected_url_scheme_renders_unlinked(override, templates):
+    (override / "content.toml").write_text(
+        '[[module]]\nname = "Evil"\nurl = "javascript:alert(1)"\n'
+    )
+    c = email_templates.invite("Realm", "http://l", 7, templates=templates)
+    assert "javascript:" not in c.html
+    assert "javascript:" not in c.text
+
+
 def test_theme_values_flow_into_html(override, templates):
     (override / "theme.toml").write_text('[color]\nquestgold = "#123456"\n')
     c = email_templates.invite("Realm", "http://l", 7, templates=templates)

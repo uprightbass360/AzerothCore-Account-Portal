@@ -30,6 +30,12 @@ class Mailer:
         )
         await self._send(self._build(to_email, content))
 
+    async def send_email_change(self, to_email: str, link: str, expires_hours: int) -> None:
+        content = email_templates.email_change(
+            self._settings.server_name, link, expires_hours, templates=self._templates
+        )
+        await self._send(self._build(to_email, content))
+
     def _build(self, to_email: str, content: EmailContent) -> EmailMessage:
         msg = EmailMessage()
         msg["From"] = self._settings.smtp_from
@@ -54,12 +60,6 @@ class Mailer:
             )
         except (aiosmtplib.errors.SMTPException, OSError) as exc:
             raise MailerError(f"failed to send mail: {exc}") from exc
-
-    async def send_email_change(self, to_email: str, link: str, expires_hours: int) -> None:
-        content = email_templates.email_change(
-            self._settings.server_name, link, expires_hours, templates=self._templates
-        )
-        await self._send(self._build(to_email, content))
 
     async def ping(self) -> bool:
         s = self._settings

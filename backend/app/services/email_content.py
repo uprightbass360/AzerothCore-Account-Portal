@@ -81,6 +81,16 @@ def _str(entry: dict, key: str) -> str:
     return value if isinstance(value, str) else ""
 
 
+_URL_SCHEMES = ("http://", "https://", "mailto:")
+
+
+def _url(entry: dict, key: str) -> str:
+    """Like _str, but only http(s)/mailto URLs pass; anything else is
+    treated as absent (empty string), the caller decides what that means."""
+    value = _str(entry, key)
+    return value if not value or value.startswith(_URL_SCHEMES) else ""
+
+
 def _entries(raw: dict, key: str, required: tuple[str, ...]) -> list[dict]:
     items = raw.get(key, [])
     if not isinstance(items, list):
@@ -91,9 +101,12 @@ def _entries(raw: dict, key: str, required: tuple[str, ...]) -> list[dict]:
         return []
     kept = []
     for entry in items:
-        if not isinstance(entry, dict) or any(not _str(entry, k) for k in required):
+        valid = isinstance(entry, dict) and all(
+            _url(entry, k) if k == "url" else _str(entry, k) for k in required
+        )
+        if not valid:
             logger.warning(
-                "content.toml: skipping [[%s]] entry missing %s",
+                "content.toml: skipping [[%s]] entry missing or with a rejected %s",
                 key,
                 "/".join(required),
             )
@@ -108,13 +121,21 @@ def load_content(path: Path | None) -> EmailContentConfig:
     if not isinstance(realm_raw, dict):
         logger.warning("content.toml: [realm] must be a table, ignoring")
         realm_raw = {}
+
+    def module(e: dict) -> Module:
+        url = _url(e, "url")
+        if _str(e, "url") and not url:
+            logger.warning(
+                "content.toml: [[module]] %s has an unsupported url scheme, dropping it: %s",
+                _str(e, "name"),
+                _str(e, "url"),
+            )
+        return Module(_str(e, "name"), _str(e, "note"), url)
+
     return EmailContentConfig(
         realm=tuple(RealmEntry(k, v) for k, v in realm_raw.items() if isinstance(v, str) and v),
         steps=tuple(Step(_str(e, "text")) for e in _entries(raw, "steps", ("text",))),
-        modules=tuple(
-            Module(_str(e, "name"), _str(e, "note"), _str(e, "url"))
-            for e in _entries(raw, "module", ("name",))
-        ),
+        modules=tuple(module(e) for e in _entries(raw, "module", ("name",))),
         links=tuple(
             Link(_str(e, "label"), _str(e, "url"), _str(e, "note"))
             for e in _entries(raw, "link", ("label", "url"))

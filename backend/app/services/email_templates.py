@@ -86,9 +86,14 @@ class TemplateSet:
         raw = self.read(f"{name}.toml")
         try:
             data = tomllib.loads(raw)
-            return {"subject": data["subject"], "button_label": data["button_label"]}
+            out = {"subject": data["subject"], "button_label": data["button_label"]}
+            if not all(isinstance(v, str) for v in out.values()):
+                raise KeyError("subject and button_label must be strings")
+            return out
         except (tomllib.TOMLDecodeError, KeyError) as exc:
-            raise ValueError(f"{name}.toml must define subject and button_label: {exc}") from exc
+            raise ValueError(
+                f"{name}.toml must define subject and button_label as strings: {exc}"
+            ) from exc
 
     def check(self) -> None:
         """Fail at boot on anything a send would trip over."""
@@ -99,7 +104,9 @@ class TemplateSet:
         for block, optional in BLOCKS.items():
             for ext in ("html", "txt"):
                 file = f"partials/{block}.{ext}"
-                _, variants = _split_partial(self.read(file))
+                wrapper, variants = _split_partial(self.read(file))
+                if "${rows}" not in wrapper:
+                    raise ValueError(f"{file} wrapper must contain ${{rows}}")
                 missing = [v for v in _required_variants(optional) if v not in variants]
                 if missing:
                     raise ValueError(f"{file} is missing row variants: {missing}")

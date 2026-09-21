@@ -113,6 +113,33 @@ def test_optional_fields_default_to_empty_when_wrong_type(tmp_path):
     assert load_content(p).modules == (Module("M", "", ""),)
 
 
+def test_module_rejects_unsupported_url_scheme(tmp_path, caplog):
+    p = tmp_path / "content.toml"
+    p.write_text('[[module]]\nname = "Evil"\nnote = "n"\nurl = "javascript:alert(1)"\n')
+    with caplog.at_level(logging.WARNING, logger="portal.email"):
+        cfg = load_content(p)
+    assert cfg.modules == (Module("Evil", "n", ""),)
+    assert "Evil" in caplog.text and "javascript:alert(1)" in caplog.text
+
+
+def test_module_accepts_mailto_url(tmp_path):
+    p = tmp_path / "content.toml"
+    p.write_text('[[module]]\nname = "M"\nurl = "mailto:admin@example.com"\n')
+    assert load_content(p).modules == (Module("M", "", "mailto:admin@example.com"),)
+
+
+def test_link_with_rejected_url_scheme_is_dropped(tmp_path, caplog):
+    p = tmp_path / "content.toml"
+    p.write_text(
+        '[[link]]\nlabel = "Evil"\nurl = "javascript:alert(1)"\n'
+        '[[link]]\nlabel = "Good"\nurl = "https://example.com"\n'
+    )
+    with caplog.at_level(logging.WARNING, logger="portal.email"):
+        cfg = load_content(p)
+    assert cfg.links == (Link("Good", "https://example.com"),)
+    assert "skipping" in caplog.text
+
+
 def test_load_theme_missing_is_default():
     assert load_theme(None) == DEFAULT_THEME
     assert "color_night" in DEFAULT_THEME and "font_body" in DEFAULT_THEME
