@@ -1,0 +1,10 @@
+What this realm runs
+${rows}
+<!-- row -->
+  - ${name}
+<!-- row:note -->
+  - ${name}: ${note}
+<!-- row:url -->
+  - ${name} (${url})
+<!-- row:note:url -->
+  - ${name}: ${note} (${url})

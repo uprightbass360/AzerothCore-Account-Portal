@@ -1,0 +1,18 @@
+# Colors and fonts for every portal email. Mirrors frontend/src/routes/layout.css;
+# the backend test suite checks the six shared colors stay identical.
+# Fonts must be mail-safe system fonts: clients do not load webfonts.
+
+[color]
+night = "#07090f"        # page background
+panel = "#0b0e17"        # card background
+gold_deep = "#8a6a14"    # card border
+gold_corner = "#e8c552"  # card top rule, button, link text
+questgold = "#ffd100"    # headings
+parchment = "#e8d9b0"    # body text
+muted = "#8b8574"        # footers, notes
+faint = "#55503f"        # realm name under the card
+button_text = "#1a1405"  # text on the gold button
+
+[font]
+display = "Georgia,'Times New Roman',serif"
+body = "Helvetica,Arial,sans-serif"

@@ -1,0 +1,4 @@
+How to connect
+${rows}
+<!-- row -->
+  ${label}: ${value}

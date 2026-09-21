@@ -1,0 +1,5 @@
+You've been invited to create a game account on ${server_name}.
+
+Register here: ${link}
+
+${blocks}This invite expires in ${expires_days} days.

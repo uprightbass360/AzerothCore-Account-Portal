@@ -1,0 +1,2 @@
+subject = "Confirm your new email for ${server_name}"
+button_label = "Confirm the email change"
