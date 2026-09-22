@@ -1,0 +1,8 @@
+Configure your client
+In your game folder, open Data/<locale>/realmlist.wtf (for example
+Data/enUS/realmlist.wtf) and set its contents to:
+${rows}
+<!-- row -->
+  ${label}: ${value}
+<!-- row:url -->
+  ${label}: ${url}

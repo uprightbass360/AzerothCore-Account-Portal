@@ -1,0 +1,6 @@
+Install the client
+${rows}
+<!-- row -->
+  ${label}: ${value}
+<!-- row:url -->
+  ${label}: ${url}
