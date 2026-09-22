@@ -89,8 +89,8 @@ def test_check_passes_on_shipped_templates():
 
 
 def test_check_reports_missing_file(baked):
-    (baked / "partials" / "steps.txt").unlink()
-    with pytest.raises(FileNotFoundError, match="partials/steps.txt"):
+    (baked / "partials" / "install.txt").unlink()
+    with pytest.raises(FileNotFoundError, match="partials/install.txt"):
         TemplateSet((baked,)).check()
 
 
@@ -118,4 +118,9 @@ def test_check_reports_wrapper_missing_rows_placeholder(baked):
 
 def test_block_and_email_registries():
     assert EMAILS == ("invite", "password_reset", "email_change")
-    assert BLOCKS == {"realm": (), "steps": (), "modules": ("note", "url"), "links": ("note",)}
+    assert BLOCKS == {
+        "install": ("url",),
+        "modules": ("note", "url"),
+        "configure": ("url",),
+        "links": ("note",),
+    }

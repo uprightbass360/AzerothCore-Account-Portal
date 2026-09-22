@@ -120,9 +120,9 @@ issue invites and promote further admins from the UI; you don't need to edit
 All emails are built from the files in `templates/email/`. Edit them on the
 host; changes apply to the next email sent, no restart needed.
 
-- `content.toml`: realmlist, client version, the modules your realm runs, and
-  links such as Discord or a client download. Each block appears in invite
-  emails only when it has entries.
+- `content.toml`: client download and version, the modules your realm runs,
+  the realmlist, and links such as Discord. The invite reads install, modules,
+  configure, create account, links; each block appears only when it has entries.
 - `theme.toml`: colors and fonts.
 - `<email>.html`, `<email>.txt`, `<email>.toml`: wording, subject, and button
   label for each email.

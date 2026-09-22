@@ -8,7 +8,7 @@ next email with no restart.
 
 | You want to… | Edit |
 |---|---|
-| Add your realmlist, modules, Discord link | `content.toml` |
+| Add your client download, realmlist, modules, Discord link | `content.toml` |
 | Change colors or fonts | `theme.toml` |
 | Change the wording of an email | `<email>.html`, `<email>.txt` (both!) and `<email>.toml` (subject, button) |
 | Change the card frame around every email | `base.html` |
@@ -59,7 +59,7 @@ files receive raw text.
 | `${username}` | `password_reset.*` |
 | `${button}` | `<email>.html` — the rendered `partials/button.html` |
 | `${button_label}` | `partials/button.html` — from `<email>.toml` |
-| `${blocks}` | `invite.html/.txt` — realm, steps, modules, links in that order |
+| `${install}`, `${modules}`, `${configure}`, `${links}` | `invite.html/.txt` — one per content block; reorder them there |
 | `${content}` | `base.html` — the rendered `<email>.html` |
 | `${color_*}`, `${font_*}` | every `.html` file, from `theme.toml` |
 
@@ -84,8 +84,8 @@ fields that are present, in this order:
 
 | Block | Row fields | Optional | Required variants |
 |---|---|---|---|
-| `realm` | `${label}`, `${value}` | — | `row` |
-| `steps` | `${n}`, `${text}` | — | `row` |
+| `install` | `${label}`, `${value}`, `${url}` | `url` (set when the value is a link) | `row`, `row:url` |
+| `configure` | `${label}`, `${value}`, `${url}` | `url` (set when the value is a link) | `row`, `row:url` |
 | `modules` | `${name}`, `${note}`, `${url}` | `note`, `url` | `row`, `row:note`, `row:url`, `row:note:url` |
 | `links` | `${label}`, `${url}`, `${note}` | `note` | `row`, `row:note` |
 

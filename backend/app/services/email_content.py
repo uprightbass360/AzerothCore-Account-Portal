@@ -1,7 +1,7 @@
 """Admin-editable email content and theme.
 
-content.toml supplies the optional blocks of the invite email (realm details,
-getting-started steps, modules, links); theme.toml supplies the colors and
+content.toml supplies the optional blocks of the invite email (install and
+configure tables, modules, links); theme.toml supplies the colors and
 fonts every email uses. Both are edited on the host and re-read on every send,
 so they must never raise: any problem is logged and the affected part falls
 back to its default. A typo here must not stop an invite going out.
@@ -16,14 +16,13 @@ logger = logging.getLogger("portal.email")
 
 
 @dataclass(frozen=True)
-class RealmEntry:
+class Entry:
+    """One label/value row of the [install] or [configure] table. `url` is the
+    value again when it is a link, so the partial can render it as one."""
+
     label: str
     value: str
-
-
-@dataclass(frozen=True)
-class Step:
-    text: str
+    url: str = ""
 
 
 @dataclass(frozen=True)
@@ -42,8 +41,8 @@ class Link:
 
 @dataclass(frozen=True)
 class EmailContentConfig:
-    realm: tuple[RealmEntry, ...] = ()
-    steps: tuple[Step, ...] = ()
+    install: tuple[Entry, ...] = ()
+    configure: tuple[Entry, ...] = ()
     modules: tuple[Module, ...] = ()
     links: tuple[Link, ...] = ()
 
@@ -115,12 +114,20 @@ def _entries(raw: dict, key: str, required: tuple[str, ...]) -> list[dict]:
     return kept
 
 
+def _table(raw: dict, key: str) -> tuple[Entry, ...]:
+    table = raw.get(key, {})
+    if not isinstance(table, dict):
+        logger.warning("content.toml: [%s] must be a table, ignoring", key)
+        return ()
+    return tuple(
+        Entry(k, v, v if v.startswith(_URL_SCHEMES) else "")
+        for k, v in table.items()
+        if isinstance(v, str) and v
+    )
+
+
 def load_content(path: Path | None) -> EmailContentConfig:
     raw = _read_toml(path, "content.toml")
-    realm_raw = raw.get("realm", {})
-    if not isinstance(realm_raw, dict):
-        logger.warning("content.toml: [realm] must be a table, ignoring")
-        realm_raw = {}
 
     def module(e: dict) -> Module:
         url = _url(e, "url")
@@ -133,8 +140,8 @@ def load_content(path: Path | None) -> EmailContentConfig:
         return Module(_str(e, "name"), _str(e, "note"), url)
 
     return EmailContentConfig(
-        realm=tuple(RealmEntry(k, v) for k, v in realm_raw.items() if isinstance(v, str) and v),
-        steps=tuple(Step(_str(e, "text")) for e in _entries(raw, "steps", ("text",))),
+        install=_table(raw, "install"),
+        configure=_table(raw, "configure"),
         modules=tuple(module(e) for e in _entries(raw, "module", ("name",))),
         links=tuple(
             Link(_str(e, "label"), _str(e, "url"), _str(e, "note"))

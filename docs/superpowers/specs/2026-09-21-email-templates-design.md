@@ -11,7 +11,7 @@ Move every portal email out of Python string literals and into an editable
 `templates/` folder at the repo root, so a realm admin can change wording,
 theming, and content without touching code or rebuilding an image. Along the
 way, give the invite email the information a new player actually needs —
-realm connection details, getting-started steps, the modules the realm runs,
+client install details, the modules the realm runs, realmlist configuration,
 and an optional list of community links.
 
 ### Goals
@@ -19,7 +19,7 @@ and an optional list of community links.
 - All subjects, plain-text bodies, and HTML live in editable files.
 - One theme file mirrors `frontend/src/routes/layout.css`, with a test that
   catches drift between the two.
-- Invite emails carry realm details, setup steps, module list, and links —
+- Invite emails carry install details, module list, configure details, and links —
   each optional, each omitted cleanly when unconfigured.
 - Admins edit content on the host and see the change on the next send, with no
   container restart. Files are re-read per send; there is no cache to invalidate.
@@ -57,16 +57,16 @@ Carried over from the current implementation and still binding:
 templates/email/
 ├── README.md                 # what admins may edit, placeholder reference,
 │                             # and the caveat that [[module]] is hand-maintained
-├── content.toml              # realm details, steps, modules, links
+├── content.toml              # install table, modules, configure table, links
 ├── theme.toml                # colors + fonts, mirrored from layout.css
 ├── base.html                 # shared chrome: body, table, card, footer
 ├── partials/                 # each block has an .html and a .txt sibling
 │   ├── button.html
-│   ├── realm.html    realm.txt      # realmlist + client version
-│   ├── steps.html    steps.txt      # numbered getting-started block
+│   ├── install.html  install.txt    # client version / download table
+│   ├── configure.html configure.txt  # realmlist.wtf location + realmlist table
 │   ├── modules.html  modules.txt    # module name / note / optional link
 │   └── links.html    links.txt      # community + dependency links
-├── invite.html               # card body: heading, paragraphs, ${button}, ${blocks}, footer
+├── invite.html               # card body: heading, ${install}, ${modules}, ${configure}, ${button}, ${links}, footer
 ├── invite.txt                # plain-text part
 ├── invite.toml               # subject = "...", button_label = "..."
 ├── password_reset.html
@@ -101,7 +101,8 @@ ${rows}</table>
 The variant name lists the optional fields that are present, in the block's
 declared order: `modules` (optional `note`, `url`) needs `row`, `row:note`,
 `row:url`, `row:note:url`; `links` (optional `note`) needs `row`, `row:note`;
-`realm` and `steps` need only `row`. The same marker syntax is used in `.txt`
+`install` and `configure` (optional `url`, set when the value is a link) need
+`row`, `row:url`. The same marker syntax is used in `.txt`
 partials. Every block has a `.txt` sibling so the plain-text part is fully
 file-based too; no wording lives in Python. A literal dollar sign in any
 template file is written `$$` (documented in the README).
@@ -166,8 +167,8 @@ orphan headings, no empty bullets. Which blocks each email includes:
 
 | Block   | invite | password_reset | email_change |
 |---------|--------|----------------|--------------|
-| realm   | yes    | no             | no           |
-| steps   | yes    | no             | no           |
+| install | yes    | no             | no           |
+| configure | yes  | no             | no           |
 | modules | yes    | no             | no           |
 | links   | yes    | no             | no           |
 
@@ -175,32 +176,34 @@ Password-reset and email-change go to people who already have accounts and are
 mid-task; a realm pitch does not belong there. They keep the current layout,
 now file-based.
 
-Order within the invite: invitation → button → realm details → getting-started
-steps → modules → links → expiry footer. Reader's path is *you're invited →
-create account → how to connect → what's special here → where to find us*.
+Order within the invite: invitation → install the client → modules →
+configure the client → button → links → expiry footer. Reader's path is
+*you're invited → get the client → what's special here → point it at this
+realm → create your account → where to find us*. Each block has its own
+placeholder in `invite.html`/`.txt` (`${install}`, `${modules}`,
+`${configure}`, `${links}`), so reordering is a template edit.
 
 ### content.toml
 
 ```toml
-# Connection details: any label → value pairs. Shipped commented out.
-# [realm]
-# Realmlist = "set realmlist logon.example.com"
-# "Client version" = "3.3.5a (12340)"
-
-[[steps]]
-text = "Click the button above and pick a username and password."
-
-[[steps]]
-text = "Open your WoW folder, edit Data/enUS/realmlist.wtf, and set it to this realm's address."
-
-[[steps]]
-text = "Launch the game and log in with your new account."
+# Install the client: label → value pairs. A URL value renders as a link.
+# Shipped live: these are true for any AzerothCore realm. Extra rows are for
+# client-side patches that modules need (mod-arac, for example).
+[install]
+"Client version" = "3.3.5a (12340)"
+Download = "https://chromiecraft.com/en/downloads/"
+# "ARAC patch" = "https://github.com/heyitsbench/mod-arac"
 
 # Modules this realm runs. Hand-maintained — see README.md.
 # [[module]]
 # name = "Solo Craft"
 # note = "Scales dungeons and raids for solo or small-group play"
 # url = "https://github.com/azerothcore/mod-solocraft"
+
+# Configure the client. The partial's own wording names the realmlist.wtf
+# location; these rows are what the player sets it to.
+# [configure]
+# Realmlist = "set realmlist logon.example.com"
 
 # [[link]]
 # label = "Discord"
@@ -210,20 +213,23 @@ text = "Launch the game and log in with your new account."
 
 Field rules:
 
-- `[realm]` — a free-form table of label → value strings, rendered in file
-  order. Labels are admin content, so admins can add rows (`Expansion`,
-  `Discord`) without a code change. Empty or absent → block omitted.
-- `[[steps]]` — `text` required.
+- `[install]`, `[configure]` — free-form tables of label → value strings,
+  rendered in file order. Labels are admin content, so admins can add rows
+  (a client patch a module needs, a launcher) without a code change. A value that starts with
+  `http://`, `https://` or `mailto:` renders as a link. Empty or absent →
+  block omitted.
 - `[[module]]` — `name` required; `note` and `url` optional. With a `url` the
   name renders as a link, otherwise as plain text.
 - `[[link]]` — `label` and `url` required; `note` optional.
 - `url` values (in `[[module]]` and `[[link]]`) must start with `http://`,
   `https://`, or `mailto:`; any other scheme is rejected with a warning.
 
-Ships with `[[steps]]` populated (they are generic and true for any realm)
-and `[realm]`, `[[module]]`, `[[link]]` commented out with examples. A fresh
-install therefore sends a correct, if plain, invite; it never mails a
-placeholder realmlist to a real player.
+Ships with `[install]` live (client version and the ChromieCraft client
+download are true for any AzerothCore realm) and the other blocks
+commented out with examples. A fresh install therefore sends a correct invite
+with install details, button, and expiry; it never mails a placeholder
+realmlist to a real player. The Configure block, including its realmlist.wtf
+sentence, appears once `[configure]` is filled in.
 
 ### theme.toml
 

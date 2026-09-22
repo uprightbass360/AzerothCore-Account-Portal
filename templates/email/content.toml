@@ -1,21 +1,18 @@
 # Content for invite emails. Edit freely: changes apply on the next email sent,
 # no restart needed. See README.md in this folder for the full reference.
+#
+# The invite reads top to bottom: install the client, what this realm runs,
+# configure the client, create your account, links. Each block appears only
+# when it has entries. Uncomment and fill in the rest for your realm.
 
-# Connection details, shown as a label / value table. Any labels work.
-# Uncomment and fill in for your realm.
-# [realm]
-# Realmlist = "set realmlist logon.example.com"
-# "Client version" = "3.3.5a (12340)"
-
-# Numbered getting-started steps.
-[[steps]]
-text = "Click the button above and pick a username and password."
-
-[[steps]]
-text = "Open your WoW folder, edit Data/enUS/realmlist.wtf, and set it to this realm's address."
-
-[[steps]]
-text = "Launch the game and log in with your new account."
+# Install the client: a label / value table. A value that is a URL becomes a
+# link. The defaults are true for any AzerothCore realm; ChromieCraft hosts the
+# standard 3.3.5a client download. Add a row for each client-side patch your
+# modules need, for example mod-arac (all races, all classes).
+[install]
+"Client version" = "3.3.5a (12340)"
+Download = "https://chromiecraft.com/en/downloads/"
+# "ARAC patch" = "https://github.com/heyitsbench/mod-arac"
 
 # Modules this realm runs. This list is hand-maintained: the portal cannot ask
 # the worldserver for it, so update it when you add or remove modules.
@@ -24,6 +21,11 @@ text = "Launch the game and log in with your new account."
 # name = "Solo Craft"
 # note = "Scales dungeons and raids for solo or small-group play"
 # url = "https://github.com/azerothcore/mod-solocraft"
+
+# Configure the client: the email explains where realmlist.wtf lives; these
+# rows are what the player sets it to.
+# [configure]
+# Realmlist = "set realmlist logon.example.com"
 
 # Community and download links. `note` is optional.
 # [[link]]

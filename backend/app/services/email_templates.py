@@ -19,9 +19,9 @@ from app.services.email_content import EmailContentConfig, load_content, load_th
 EMAILS = ("invite", "password_reset", "email_change")
 # block name -> optional row fields, in the order they appear in variant names
 BLOCKS: dict[str, tuple[str, ...]] = {
-    "realm": (),
-    "steps": (),
+    "install": ("url",),
     "modules": ("note", "url"),
+    "configure": ("url",),
     "links": ("note",),
 }
 _REQUIRED_FILES = (
@@ -136,8 +136,11 @@ def _block(
 
 def _rows(config: EmailContentConfig) -> list[tuple[str, list[dict[str, str]]]]:
     return [
-        ("realm", [{"label": r.label, "value": r.value} for r in config.realm]),
-        ("steps", [{"n": str(i), "text": s.text} for i, s in enumerate(config.steps, 1)]),
+        ("install", [{"label": e.label, "value": e.value, "url": e.url} for e in config.install]),
+        (
+            "configure",
+            [{"label": e.label, "value": e.value, "url": e.url} for e in config.configure],
+        ),
         ("modules", [{"name": m.name, "note": m.note, "url": m.url} for m in config.modules]),
         ("links", [{"label": lk.label, "url": lk.url, "note": lk.note} for lk in config.links]),
     ]
@@ -154,9 +157,13 @@ def _render(
     html_vars["button"] = Template(ts.read("partials/button.html")).safe_substitute(
         html_vars, button_label=escape(meta["button_label"], quote=True)
     )
-    blocks = _rows(config) if config is not None else []
-    html_vars["blocks"] = "".join(_block(ts, n, "html", rows, html_vars) for n, rows in blocks)
-    text_vars["blocks"] = "".join(_block(ts, n, "txt", rows, {}) for n, rows in blocks)
+    # one ${install}/${modules}/${configure}/${links} placeholder per block, so the
+    # email's order lives in invite.html/.txt rather than here
+    rows_by_block = dict(_rows(config)) if config is not None else {}
+    for block in BLOCKS:
+        rows = rows_by_block.get(block, [])
+        html_vars[block] = _block(ts, block, "html", rows, html_vars)
+        text_vars[block] = _block(ts, block, "txt", rows, {})
 
     content = Template(ts.read(f"{name}.html")).safe_substitute(html_vars)
     return EmailContent(

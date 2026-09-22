@@ -3,23 +3,20 @@ import logging
 from app.services.email_content import (
     DEFAULT_THEME,
     EmailContentConfig,
+    Entry,
     Link,
     Module,
-    RealmEntry,
-    Step,
     load_content,
     load_theme,
 )
 
 FULL = """
-[realm]
-Realmlist = "set realmlist logon.test"
+[install]
 "Client version" = "3.3.5a"
+Download = "https://dl.test/client"
 
-[[steps]]
-text = "One"
-[[steps]]
-text = "Two"
+[configure]
+Realmlist = "set realmlist logon.test"
 
 [[module]]
 name = "Solo Craft"
@@ -42,11 +39,11 @@ def test_load_content_full(tmp_path):
     p = tmp_path / "content.toml"
     p.write_text(FULL)
     cfg = load_content(p)
-    assert cfg.realm == (
-        RealmEntry("Realmlist", "set realmlist logon.test"),
-        RealmEntry("Client version", "3.3.5a"),
+    assert cfg.install == (
+        Entry("Client version", "3.3.5a"),
+        Entry("Download", "https://dl.test/client", "https://dl.test/client"),
     )
-    assert cfg.steps == (Step("One"), Step("Two"))
+    assert cfg.configure == (Entry("Realmlist", "set realmlist logon.test"),)
     assert cfg.modules == (
         Module("Solo Craft", "Scales dungeons", "https://example.com/solocraft"),
         Module("Transmog"),
@@ -85,26 +82,24 @@ def test_entry_missing_required_field_is_skipped(tmp_path, caplog):
     p.write_text(
         '[[module]]\nnote = "no name"\n[[module]]\nname = "Kept"\n'
         '[[link]]\nlabel = "no url"\n[[link]]\nlabel = "L"\nurl = "http://l"\n'
-        '[[steps]]\ntext = 5\n[[steps]]\ntext = "ok"\n'
     )
     with caplog.at_level(logging.WARNING, logger="portal.email"):
         cfg = load_content(p)
     assert cfg.modules == (Module("Kept"),)
     assert cfg.links == (Link("L", "http://l"),)
-    assert cfg.steps == (Step("ok"),)
     assert "skipping" in caplog.text
 
 
 def test_wrong_shapes_are_ignored(tmp_path):
     p = tmp_path / "content.toml"
-    p.write_text('realm = "not a table"\nsteps = "not an array"\nlink = [1, 2]\n')
+    p.write_text('install = "not a table"\nconfigure = 5\nmodule = "not an array"\nlink = [1, 2]\n')
     assert load_content(p) == EmailContentConfig()
 
 
-def test_realm_skips_non_string_values(tmp_path):
+def test_table_skips_non_string_values(tmp_path):
     p = tmp_path / "content.toml"
-    p.write_text('[realm]\nPort = 3724\nHost = "logon.test"\nEmpty = ""\n')
-    assert load_content(p).realm == (RealmEntry("Host", "logon.test"),)
+    p.write_text('[install]\nPort = 3724\nHost = "logon.test"\nEmpty = ""\n')
+    assert load_content(p).install == (Entry("Host", "logon.test"),)
 
 
 def test_optional_fields_default_to_empty_when_wrong_type(tmp_path):
