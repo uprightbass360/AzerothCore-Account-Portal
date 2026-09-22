@@ -114,7 +114,11 @@ def test_invite_renders_every_block_in_html_and_text(override, templates):
         assert "set realmlist logon.test" in part and "3.3.5a" in part
         assert "Getting started" in part and "Make an account" in part and "Log in" in part
         assert "What this realm runs" in part and "Solo Craft" in part
-        assert "Links" in part and "https://discord.gg/x" in part and "https://wiki.test" in part
+        assert "Links" in part
+    # links are real anchors in HTML and "label: url" rows in text
+    assert 'href="https://discord.gg/x"' in c.html and 'href="https://wiki.test"' in c.html
+    assert "- Discord (Chat & help): https://discord.gg/x" in c.text
+    assert "- Wiki: https://wiki.test" in c.text
     # order: realm, steps, modules, links, then the expiry footer
     idx = [
         c.html.index(s)
