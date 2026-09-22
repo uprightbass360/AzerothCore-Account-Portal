@@ -3,11 +3,11 @@
 The AzerothCore Account Portal is a dead simple self-service invitation and account-management web
 app for any existing AzerothCore server. Players use it to register a game account from an
 admin-issued invite link, change their password, and turn two-factor authentication on or
-off — all without shell or database access. 
+off, all without shell or database access. 
 
 ## Screenshots
 
-| Invite registration | Admin — invites |
+| Invite registration | Admin: invites |
 | --- | --- |
 | ![Registration page with live username availability check](docs/screenshots/register.png) | ![Admin invites page with a pending invite](docs/screenshots/admin-invites.png) |
 
@@ -26,7 +26,7 @@ off — all without shell or database access.
 - SOAP enabled on the worldserver: `SOAP.Enabled = 1` in the worldserver config, listening
   on port 7878 (or whatever port you point `PORTAL_SOAP_URL` at).
 - An SMTP relay the portal can send through (invite emails). Any relay you already
-  control works — a real provider, an internal relay, or a local `postfix`/`msmtp`
+  control works: a real provider, an internal relay, or a local `postfix`/`msmtp`
   container.
 
 ## One-time AzerothCore setup
@@ -45,7 +45,7 @@ account set gmlevel portalsoap 3 -1
 Use this account's name and password as `PORTAL_SOAP_USER` / `PORTAL_SOAP_PASS` below.
 
 **2. Create a read-only MySQL user for `acore_auth`.** The portal only ever `SELECT`s
-account rows to look up usernames, emails, and lock state — it never writes to MySQL
+account rows to look up usernames, emails, and lock state; it never writes to MySQL
 directly. From the stack's `ac-mysql` container:
 
 ```bash
@@ -61,7 +61,7 @@ different console command sets. From the worldserver console, run:
 help account set
 ```
 
-Confirm `account set 2fa <username> off` is listed — the portal relies on it to disable
+Confirm `account set 2fa <username> off` is listed; the portal relies on it to disable
 2FA server-side. Also check whether `account set email <username> <email> <email>` exists.
 If your build does not have `account set email`, the portal's `SoapClient.set_email` call
 will fault; the accepted fallback is to make `set_email` a no-op that returns `""` and
@@ -75,10 +75,10 @@ cp .env.template .env
 ```
 
 Fill in `.env`: `ACORE_NETWORK` with the name of the Docker network your
-AzerothCore stack runs on (find it with `docker network ls` — it's usually
+AzerothCore stack runs on (find it with `docker network ls`; it's usually
 `<project>_default`), `PORTAL_ACORE_AUTH_URL` with the
 `portal_ro` password from step 2 above, `PORTAL_SOAP_USER`/`PORTAL_SOAP_PASS` from step 1,
-your SMTP settings, `PORTAL_PUBLIC_BASE_URL` (the URL players will use — this also doubles
+your SMTP settings, `PORTAL_PUBLIC_BASE_URL` (the URL players will use; this also doubles
 as the frontend's CSRF origin, so get it right), and `PORTAL_INTERNAL_API_KEY` (generate
 one with `openssl rand -hex 32`).
 
@@ -96,7 +96,7 @@ Or build locally from source:
 docker compose up -d --build
 ```
 
-Check the backend came up cleanly — you should see the alembic migration run followed by
+Check the backend came up cleanly: you should see the alembic migration run followed by
 the uvicorn startup line:
 
 ```bash
@@ -112,42 +112,40 @@ Before the first start, set `PORTAL_ADMIN_USERNAMES` in `.env` to your own game 
 name (the one you'll register through an invite, or that already exists in `acore_auth`).
 The backend seeds this list as portal admins on every startup, matching by account name.
 Once you've registered and logged in as that account, you'll see the admin area and can
-issue invites and promote further admins from the UI — you don't need to edit
+issue invites and promote further admins from the UI; you don't need to edit
 `PORTAL_ADMIN_USERNAMES` again after that.
 
-## Customising emails
+## Customizing emails
 
-Invite, password-reset, and email-change emails are built from the files in
-`templates/email/`. The most useful file is `templates/email/content.toml`,
-where you add your realmlist and client version, the modules your realm runs,
-and links such as Discord or a client download. Each of those blocks appears
-in invite emails only when it has entries.
+All emails are built from the files in `templates/email/`. Edit them on the
+host; changes apply to the next email sent, no restart needed.
 
-Edit the files on the host; the backend re-reads them on every send, so
-changes apply to the next email with no restart. Wording lives in
-`<email>.html` / `.txt` / `.toml`, colors and fonts in `theme.toml`, and the
-card frame in `base.html`. `templates/email/README.md` lists every
+- `content.toml`: realmlist, client version, the modules your realm runs, and
+  links such as Discord or a client download. Each block appears in invite
+  emails only when it has entries.
+- `theme.toml`: colors and fonts.
+- `<email>.html`, `<email>.txt`, `<email>.toml`: wording, subject, and button
+  label for each email.
+- `base.html`: the frame around every email.
+
+`docker-compose.yml` mounts `./templates` as a per-file override of the copy
+shipped in the image, so keep only the files you change. A bad `content.toml`
+or `theme.toml` falls back to defaults and is logged; a missing template file
+stops the backend at startup. `templates/email/README.md` lists every
 placeholder.
 
-The image ships its own copy of the folder; `docker-compose.yml` mounts
-`./templates` as a per-file override, so a fresh checkout works unchanged and
-you only need to keep the files you actually edit. A malformed `content.toml`
-or `theme.toml` falls back to defaults and is logged; a missing or malformed
-template file stops the backend at startup with the path in the error.
-
-The `[[module]]` list is hand-maintained — the portal cannot ask the
-worldserver which modules are loaded — so update it when you add or remove a
-module.
+The `[[module]]` list is hand-maintained: the portal cannot ask the
+worldserver which modules are loaded.
 
 ## External access via a reverse proxy
 
-The portal has no TLS of its own — put any reverse proxy you control in front of
+The portal has no TLS of its own; put any reverse proxy you control in front of
 the frontend port (Pangolin, Caddy, nginx, Traefik, ...) and set two variables:
 
-1. `PORTAL_PUBLIC_BASE_URL` — the exact public URL users will hit, e.g.
+1. `PORTAL_PUBLIC_BASE_URL`: the exact public URL users will hit, e.g.
    `https://wow.example.com:442`. This one setting drives the CSRF origin check,
    the `Secure` cookie flag, and the links in invite emails.
-2. `PORTAL_ADDRESS_HEADER=x-forwarded-for` — so login rate limiting and the
+2. `PORTAL_ADDRESS_HEADER=x-forwarded-for`: so login rate limiting and the
    audit log record real visitor IPs instead of the proxy's. Only set this when
    a proxy you control fronts the portal and always sets the header; it is
    spoofable from direct connections. `PORTAL_XFF_DEPTH` (default 1) matches
@@ -157,7 +155,7 @@ Point the proxy at the frontend port (`PORTAL_HTTP_PORT`, default 8080). The
 backend stays unexposed either way. Then `docker compose up -d` to apply.
 
 Before exposing the portal publicly, also replace any test SMTP (e.g. MailHog)
-with a real relay — invite emails must actually reach recipients.
+with a real relay; invite emails must actually reach recipients.
 
 ## Backups
 
@@ -168,7 +166,7 @@ the `appdata` volume. Back it up with:
 docker run --rm -v <project>_appdata:/data -v $(pwd):/backup alpine cp /data/portal.db /backup/portal-$(date +%F).db
 ```
 
-Replace `<project>_appdata` with your actual volume name (`docker volume ls` if unsure —
+Replace `<project>_appdata` with your actual volume name (`docker volume ls` if unsure;
 by default it's `<compose-project-name>_appdata`). Game accounts themselves are not stored
 by the portal at all; they live in your AzerothCore stack's own `acore_auth` database, so
 back that up through your existing MySQL backup process, not through this one.
@@ -192,12 +190,12 @@ npx vitest run --coverage
 ```
 
 End-to-end tests against a full stack live in `frontend/e2e/` (Playwright) and need a
-running backend plus admin credentials — see the env vars checked at the top of
+running backend plus admin credentials; see the env vars checked at the top of
 `frontend/e2e/portal.spec.ts`. Without them, `npx playwright test` cleanly skips.
 
 ## Security model
 
-Every account mutation — creating an account, setting a password, toggling 2FA — is
+Every account mutation (creating an account, setting a password, toggling 2FA) is
 performed exclusively through the worldserver's SOAP interface using a dedicated GM
 account, so the portal never writes to the game database directly; its only direct MySQL
 access is a `SELECT`-only user scoped to `acore_auth` for read lookups. The frontend and
@@ -207,7 +205,7 @@ handled with server-side sessions issued after password (and optional TOTP) veri
 
 ## Verifying the deployment
 
-The checks below need a live AzerothCore stack — run them after your first real
+The checks below need a live AzerothCore stack; run them after your first real
 deployment.
 
 **Health endpoint against the real stack.** With the portal joined to your stack's
@@ -227,7 +225,7 @@ Confirm the response is `{"status": "ok", "checks": {"acore_auth": "ok", "soap":
 **Worldserver console SOAP command support.** From the worldserver console, run
 `help account set` and confirm:
 
-- `account set 2fa <username> off` is accepted — this is required for the portal's
+- `account set 2fa <username> off` is accepted; this is required for the portal's
   "disable 2FA" flow to work.
 - Whether `account set email <username> <email> <email>` exists. If it does not, apply the
   fallback noted above: make `SoapClient.set_email` a no-op returning `""` and keep the
