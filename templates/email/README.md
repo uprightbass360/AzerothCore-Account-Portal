@@ -46,7 +46,7 @@ a `[[link]]` with a rejected `url` is dropped entirely.
 
 Files use `${name}` placeholders. In `.html`, `.txt`, and `<email>.toml`
 files, a literal dollar sign is written `$$`. Values in `content.toml` are
-inserted as-is — write dollar signs normally there. Unknown placeholders are
+inserted as-is, so write dollar signs normally there. Unknown placeholders are
 left as-is. Everything inserted into `.html` files is HTML-escaped; `.txt`
 files receive raw text.
 
@@ -57,10 +57,10 @@ files receive raw text.
 | `${expires_days}` | `invite.*` |
 | `${expires_hours}` | `password_reset.*`, `email_change.*` |
 | `${username}` | `password_reset.*` |
-| `${button}` | `<email>.html` — the rendered `partials/button.html` |
-| `${button_label}` | `partials/button.html` — from `<email>.toml` |
-| `${install}`, `${modules}`, `${configure}`, `${links}` | `invite.html/.txt` — one per content block; reorder them there |
-| `${content}` | `base.html` — the rendered `<email>.html` |
+| `${button}` | `<email>.html`: the rendered `partials/button.html` |
+| `${button_label}` | `partials/button.html`: from `<email>.toml` |
+| `${install}`, `${modules}`, `${configure}`, `${links}` | `invite.html/.txt`: one per content block; reorder them there |
+| `${content}` | `base.html`: the rendered `<email>.html` |
 | `${color_*}`, `${font_*}` | every `.html` file, from `theme.toml` |
 
 ### Partials and row variants
@@ -76,7 +76,7 @@ ${rows}</table>
 <!-- row -->
 <tr><td><a href="${url}">${label}</a></td></tr>
 <!-- row:note -->
-<tr><td><a href="${url}">${label}</a> — ${note}</td></tr>
+<tr><td><a href="${url}">${label}</a> (${note})</td></tr>
 ```
 
 Optional fields pick the row variant. The variant name lists the optional
