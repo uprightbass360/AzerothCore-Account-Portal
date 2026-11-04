@@ -42,7 +42,7 @@
 	"dependencies": {
 		"@fontsource/cinzel": "^5.3.0",
 		"@fontsource/inter": "^5.3.0",
-		"zod": "^4.6.5"
+		"zod": "^4.6.6"
 	},
 	"overrides": {
 		"cookie": "^0.7.0"
